@@ -1584,6 +1584,9 @@ void set_md_stage_counts(
 #if II_COMP_FLAG
         context_ptr->bypass_stage1[CAND_CLASS_4] = EB_FALSE;
 #endif
+#if OBMC_FLAG
+        context_ptr->bypass_stage1[CAND_CLASS_5] = EB_FALSE;
+#endif
     }
     else
         memset(context_ptr->bypass_stage1, EB_TRUE, CAND_CLASS_TOTAL);
@@ -1605,6 +1608,9 @@ void set_md_stage_counts(
 #if II_COMP_FLAG
             context_ptr->bypass_stage2[CAND_CLASS_4] = EB_TRUE;
 #endif
+#if OBMC_FLAG
+            context_ptr->bypass_stage2[CAND_CLASS_5] = EB_TRUE;
+#endif
     }
     else
         memset(context_ptr->bypass_stage2, EB_TRUE, CAND_CLASS_TOTAL);
@@ -1622,6 +1628,14 @@ void set_md_stage_counts(
 
 #if II_COMP_FLAG
         context_ptr->md_stage_1_count[CAND_CLASS_4] = (picture_control_set_ptr->slice_type == I_SLICE) ? 0 : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? 14 :6;// INTER_PRED_NFL: (INTER_PRED_NFL >> 1);
+#endif
+#if OBMC_FLAG
+    if (picture_control_set_ptr->parent_pcs_ptr->pic_obmc_mode == 1)
+        context_ptr->md_stage_1_count[CAND_CLASS_5] = 16 ;
+    else if (picture_control_set_ptr->parent_pcs_ptr->pic_obmc_mode <= 3)
+        context_ptr->md_stage_1_count[CAND_CLASS_5] =  (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? 12 : 4;
+    else
+        context_ptr->md_stage_1_count[CAND_CLASS_5] =   (picture_control_set_ptr->temporal_layer_index == 0 ) ? 12 : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? 8: 4;
 #endif
     if (picture_control_set_ptr->enc_mode >= ENC_M2) {
         context_ptr->md_stage_1_count[CAND_CLASS_1] = context_ptr->md_stage_1_count[CAND_CLASS_1] / 2;
@@ -1643,7 +1657,10 @@ void set_md_stage_counts(
     }
 
 #if II_COMP_FLAG
-    context_ptr->md_stage_2_count[CAND_CLASS_4] = context_ptr->bypass_stage1[CAND_CLASS_4] ? context_ptr->md_stage_1_count[CAND_CLASS_4] : (picture_control_set_ptr->slice_type == I_SLICE) ? 0 : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? 12: 4;// 14 : 4;
+    context_ptr->md_stage_2_count[CAND_CLASS_4] =  (picture_control_set_ptr->slice_type == I_SLICE) ? 0 : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? 12: 4;// 14 : 4;
+#endif
+#if OBMC_FLAG
+    context_ptr->md_stage_2_count[CAND_CLASS_5] =  (picture_control_set_ptr->slice_type == I_SLICE) ? 0 : 16;
 #endif
     if (picture_control_set_ptr->enc_mode >= ENC_M2) {
         context_ptr->md_stage_2_count[CAND_CLASS_1] = (picture_control_set_ptr->slice_type == I_SLICE) ? 0 : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? 12 : 3;
@@ -1672,6 +1689,14 @@ void set_md_stage_counts(
 
 #if II_COMP_FLAG
     context_ptr->md_stage_3_count[CAND_CLASS_4] = (picture_control_set_ptr->slice_type == I_SLICE) ? 0 : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? 12 : 4;// 14 : 4;
+#endif
+#if OBMC_FLAG
+    if (picture_control_set_ptr->parent_pcs_ptr->pic_obmc_mode == 1)
+        context_ptr->md_stage_3_count[CAND_CLASS_5] = 16 ;
+    else if (picture_control_set_ptr->parent_pcs_ptr->pic_obmc_mode <= 3)
+        context_ptr->md_stage_3_count[CAND_CLASS_5] =  (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? 12 : 4;
+    else
+        context_ptr->md_stage_3_count[CAND_CLASS_5] =   (picture_control_set_ptr->temporal_layer_index == 0 ) ? 12 : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? 8: 4;
 #endif
     if (!context_ptr->combine_class12 && picture_control_set_ptr->parent_pcs_ptr->sc_content_detected && picture_control_set_ptr->enc_mode == ENC_M0) {
 
@@ -1986,6 +2011,27 @@ static INLINE void sort_array_index_fast_cost_ptr(
     }
 }
 
+#if FIX_SORTING_METHOD
+void sort_stage1_fast_candidates(
+    struct ModeDecisionContext   *context_ptr,
+    uint32_t                      num_of_cand_to_sort,
+    uint32_t                     *cand_buff_indices)
+{
+    uint32_t i, j, index;
+    ModeDecisionCandidateBuffer **buffer_ptr_array = context_ptr->candidate_buffer_ptr_array;
+
+    for (i = 0; i < num_of_cand_to_sort - 1; ++i) {
+        for (j = i + 1; j < num_of_cand_to_sort; ++j) {
+            if (*(buffer_ptr_array[cand_buff_indices[j]]->fast_cost_ptr) < *(buffer_ptr_array[cand_buff_indices[i]]->fast_cost_ptr)) {
+                index = cand_buff_indices[i];
+                cand_buff_indices[i] = (uint32_t)cand_buff_indices[j];
+                cand_buff_indices[j] = (uint32_t)index;
+
+            }
+        }
+    }
+}
+#else
 void sort_stage1_fast_candidates(
     struct ModeDecisionContext   *context_ptr,
     uint32_t                      num_of_cand_to_sort,
@@ -1997,7 +2043,7 @@ void sort_stage1_fast_candidates(
     sort_array_index_fast_cost_ptr(buffer_ptr_array,
         cand_buff_indices, num_of_cand_to_sort);
 }
-
+#endif
 void sort_stage2_candidates(
     struct ModeDecisionContext   *context_ptr,
     uint32_t                      num_of_cand_to_sort,
@@ -2125,7 +2171,7 @@ void md_stage_0(
 
     // Set MD Staging fast_loop_core settings
 
-    context_ptr->md_staging_interpolation_search = (context_ptr->md_staging_mode) ? EB_TRUE : picture_control_set_ptr->parent_pcs_ptr->interpolation_search_level >= IT_SEARCH_FAST_LOOP_UV_BLIND ? EB_FALSE : EB_TRUE;
+    context_ptr->md_staging_skip_interpolation_search = (context_ptr->md_staging_mode) ? EB_TRUE : picture_control_set_ptr->parent_pcs_ptr->interpolation_search_level >= IT_SEARCH_FAST_LOOP_UV_BLIND ? EB_FALSE : EB_TRUE;
     context_ptr->md_staging_skip_inter_chroma_pred = (context_ptr->md_staging_mode && context_ptr->md_stage == MD_STAGE_0 && context_ptr->target_class != CAND_CLASS_0) ? EB_TRUE : EB_FALSE;
     context_ptr->md_staging_use_bilinear = (context_ptr->md_staging_mode) ? EB_TRUE : EB_FALSE;
 
@@ -2256,7 +2302,7 @@ void md_stage_1(
     EbAsm                         asm_type) {
 
     // Set MD Staging fast_loop_core settings
-    context_ptr->md_staging_interpolation_search = (context_ptr->md_staging_mode == MD_STAGING_MODE_3) ? EB_TRUE : picture_control_set_ptr->parent_pcs_ptr->interpolation_search_level >= IT_SEARCH_FAST_LOOP_UV_BLIND ? EB_FALSE : EB_TRUE;
+    context_ptr->md_staging_skip_interpolation_search = (context_ptr->md_staging_mode == MD_STAGING_MODE_3) ? EB_TRUE : picture_control_set_ptr->parent_pcs_ptr->interpolation_search_level >= IT_SEARCH_FAST_LOOP_UV_BLIND ? EB_FALSE : EB_TRUE;
     context_ptr->md_staging_skip_inter_chroma_pred = EB_FALSE;
     context_ptr->md_staging_use_bilinear = EB_FALSE;
 
@@ -2440,7 +2486,7 @@ void predictive_me_sub_pel_search(
             candidate_ptr->interp_filters = 0;
 
             // Prediction
-            context_ptr->md_staging_interpolation_search = EB_TRUE;
+            context_ptr->md_staging_skip_interpolation_search = EB_TRUE;
             context_ptr->md_staging_skip_inter_chroma_pred = EB_TRUE;
             ProductPredictionFunTable[INTER_MODE](
                 context_ptr,
@@ -5508,7 +5554,7 @@ void full_loop_core(
         if (candidate_ptr->type != INTRA_MODE) {
             if (picture_control_set_ptr->parent_pcs_ptr->interpolation_search_level > IT_SEARCH_OFF)
                 if (picture_control_set_ptr->parent_pcs_ptr->interpolation_search_level == IT_SEARCH_FULL_LOOP || context_ptr->md_staging_skip_full_pred == EB_FALSE) {
-                    context_ptr->md_staging_interpolation_search = EB_FALSE;
+                    context_ptr->md_staging_skip_interpolation_search = EB_FALSE;
                     context_ptr->md_staging_skip_inter_chroma_pred = EB_FALSE;
                     ProductPredictionFunTable[candidate_ptr->type](
                         context_ptr,
@@ -5910,6 +5956,9 @@ void move_cu_data(
     CodingUnit *src_cu,
     CodingUnit *dst_cu)
 {
+#if OBMC_FLAG
+    dst_cu->interp_filters = src_cu->interp_filters;
+#endif
     dst_cu->interinter_comp.type = src_cu->interinter_comp.type;
     dst_cu->interinter_comp.mask_type = src_cu->interinter_comp.mask_type;
     dst_cu->interinter_comp.wedge_index = src_cu->interinter_comp.wedge_index;
@@ -6021,6 +6070,9 @@ void move_cu_data_redund(
     CodingUnit *src_cu,
     CodingUnit *dst_cu){
 
+#if OBMC_FLAG
+    dst_cu->interp_filters = src_cu->interp_filters;
+#endif
     dst_cu->interinter_comp.type = src_cu->interinter_comp.type;
     dst_cu->interinter_comp.mask_type = src_cu->interinter_comp.mask_type;
     dst_cu->interinter_comp.wedge_index = src_cu->interinter_comp.wedge_index;
@@ -7333,7 +7385,7 @@ void md_encode_block(
         if (picture_control_set_ptr->parent_pcs_ptr->interpolation_search_level == IT_SEARCH_INTER_DEPTH) {
             if (candidate_buffer->candidate_ptr->type != INTRA_MODE && candidate_buffer->candidate_ptr->motion_mode == SIMPLE_TRANSLATION) {
 
-                context_ptr->md_staging_interpolation_search = EB_FALSE;
+                context_ptr->md_staging_skip_interpolation_search = EB_FALSE;
                 context_ptr->md_staging_skip_inter_chroma_pred = EB_FALSE;
                 ProductPredictionFunTable[candidate_buffer->candidate_ptr->type](
                     context_ptr,
@@ -7516,6 +7568,9 @@ EB_EXTERN EbErrorType mode_decision_sb(
     uint32_t                               leaf_count = mdcResultTbPtr->leaf_count;
     const EbMdcLeafData *const           leaf_data_array = mdcResultTbPtr->leaf_data_array;
     context_ptr->sb_ptr = sb_ptr;
+#if FIX_COEF_BASED_ATB_SKIP
+    context_ptr->coeff_based_skip_atb = 0;
+#endif
     EbBool all_cu_init = (picture_control_set_ptr->parent_pcs_ptr->pic_depth_mode <= PIC_SQ_DEPTH_MODE);
     if (all_cu_init) {
         init_sq_nsq_block(
@@ -7635,6 +7690,9 @@ EB_EXTERN EbErrorType mode_decision_sb(
         context_ptr->md_ep_pipe_sb[blk_idx_mds].merge_cost = 0;
         context_ptr->md_ep_pipe_sb[blk_idx_mds].skip_cost = 0;
 
+#if OBMC_FLAG
+        cu_ptr->av1xd->sb_type = blk_geom->bsize;
+#endif
         cu_ptr->mds_idx = blk_idx_mds;
         context_ptr->md_cu_arr_nsq[blk_idx_mds].mdc_split_flag = (uint16_t)leafDataPtr->split_flag;
 
@@ -7711,77 +7769,81 @@ EB_EXTERN EbErrorType mode_decision_sb(
             }
         }
         else
-        // Initialize tx_depth
-        cu_ptr->tx_depth = 0;
-        if (blk_geom->quadi > 0 && blk_geom->shape == PART_N) {
-
-            uint32_t blk_mds = context_ptr->blk_geom->sqi_mds;
-            uint64_t parent_depth_cost = 0, current_depth_cost = 0;
-            SequenceControlSet *sequence_control_set_ptr = (SequenceControlSet*)picture_control_set_ptr->sequence_control_set_wrapper_ptr->object_ptr;
-            uint32_t parent_depth_idx_mds = blk_mds;
-
-            // from a given child index, derive the index of the parent
-            parent_depth_idx_mds = (context_ptr->blk_geom->sqi_mds - (context_ptr->blk_geom->quadi - 3) * ns_depth_offset[sequence_control_set_ptr->seq_header.sb_size == BLOCK_128X128][context_ptr->blk_geom->depth]) -
-                                    parent_depth_offset[sequence_control_set_ptr->seq_header.sb_size == BLOCK_128X128][blk_geom->depth];
-
-            if (picture_control_set_ptr->slice_type == I_SLICE && parent_depth_idx_mds == 0 && sequence_control_set_ptr->seq_header.sb_size == BLOCK_128X128)
-                parent_depth_cost = MAX_MODE_COST;
-            else
-                compute_depth_costs_md_skip(
-                    context_ptr,
-                    sequence_control_set_ptr,
-                    parent_depth_idx_mds,
-                    ns_depth_offset[sequence_control_set_ptr->seq_header.sb_size == BLOCK_128X128][context_ptr->blk_geom->depth], &parent_depth_cost, &current_depth_cost);
-
-            if (!sequence_control_set_ptr->sb_geom[lcuAddr].block_is_allowed[parent_depth_idx_mds])
-                parent_depth_cost = MAX_MODE_COST;
-
-            // compare the cost of the parent to the cost of the already encoded child + an estimated cost for the remaining child @ the current depth
-            // if the total child cost is higher than the parent cost then skip the remaining  child @ the current depth
-            // when md_exit_th=0 the estimated cost for the remaining child is not taken into account and the action will be lossless compared to no exit
-            // MD_EXIT_THSL could be tuned toward a faster encoder but lossy
-#if SPEED_OPT
-            if (parent_depth_cost <= current_depth_cost + (current_depth_cost* (4 - context_ptr->blk_geom->quadi)* context_ptr->md_exit_th / context_ptr->blk_geom->quadi / 100)) {
-#else
-            if (parent_depth_cost <= current_depth_cost + (current_depth_cost* (4 - context_ptr->blk_geom->quadi)* MD_EXIT_THSL / context_ptr->blk_geom->quadi / 100)) {
+#if FIX_SKIP_REDUNDANT_BLOCK
+        {
 #endif
-                skip_next_sq = 1;
-                next_non_skip_blk_idx_mds = parent_depth_idx_mds + ns_depth_offset[sequence_control_set_ptr->seq_header.sb_size == BLOCK_128X128][context_ptr->blk_geom->depth - 1];
+            // Initialize tx_depth
+            cu_ptr->tx_depth = 0;
+            if (blk_geom->quadi > 0 && blk_geom->shape == PART_N) {
+
+                uint32_t blk_mds = context_ptr->blk_geom->sqi_mds;
+                uint64_t parent_depth_cost = 0, current_depth_cost = 0;
+                SequenceControlSet *sequence_control_set_ptr = (SequenceControlSet*)picture_control_set_ptr->sequence_control_set_wrapper_ptr->object_ptr;
+                uint32_t parent_depth_idx_mds = blk_mds;
+
+                // from a given child index, derive the index of the parent
+                parent_depth_idx_mds = (context_ptr->blk_geom->sqi_mds - (context_ptr->blk_geom->quadi - 3) * ns_depth_offset[sequence_control_set_ptr->seq_header.sb_size == BLOCK_128X128][context_ptr->blk_geom->depth]) -
+                    parent_depth_offset[sequence_control_set_ptr->seq_header.sb_size == BLOCK_128X128][blk_geom->depth];
+
+                if (picture_control_set_ptr->slice_type == I_SLICE && parent_depth_idx_mds == 0 && sequence_control_set_ptr->seq_header.sb_size == BLOCK_128X128)
+                    parent_depth_cost = MAX_MODE_COST;
+                else
+                    compute_depth_costs_md_skip(
+                        context_ptr,
+                        sequence_control_set_ptr,
+                        parent_depth_idx_mds,
+                        ns_depth_offset[sequence_control_set_ptr->seq_header.sb_size == BLOCK_128X128][context_ptr->blk_geom->depth], &parent_depth_cost, &current_depth_cost);
+
+                if (!sequence_control_set_ptr->sb_geom[lcuAddr].block_is_allowed[parent_depth_idx_mds])
+                    parent_depth_cost = MAX_MODE_COST;
+
+                // compare the cost of the parent to the cost of the already encoded child + an estimated cost for the remaining child @ the current depth
+                // if the total child cost is higher than the parent cost then skip the remaining  child @ the current depth
+                // when md_exit_th=0 the estimated cost for the remaining child is not taken into account and the action will be lossless compared to no exit
+                // MD_EXIT_THSL could be tuned toward a faster encoder but lossy
+#if SPEED_OPT
+                if (parent_depth_cost <= current_depth_cost + (current_depth_cost* (4 - context_ptr->blk_geom->quadi)* context_ptr->md_exit_th / context_ptr->blk_geom->quadi / 100)) {
+#else
+                if (parent_depth_cost <= current_depth_cost + (current_depth_cost* (4 - context_ptr->blk_geom->quadi)* MD_EXIT_THSL / context_ptr->blk_geom->quadi / 100)) {
+#endif
+                    skip_next_sq = 1;
+                    next_non_skip_blk_idx_mds = parent_depth_idx_mds + ns_depth_offset[sequence_control_set_ptr->seq_header.sb_size == BLOCK_128X128][context_ptr->blk_geom->depth - 1];
+                }
+                else
+                    skip_next_sq = 0;
+            }
+            // skip until we reach the next block @ the parent block depth
+            if (cu_ptr->mds_idx >= next_non_skip_blk_idx_mds && skip_next_sq == 1)
+                skip_next_sq = 0;
+
+            if (picture_control_set_ptr->parent_pcs_ptr->sequence_control_set_ptr->sb_geom[lcuAddr].block_is_allowed[cu_ptr->mds_idx] && !skip_next_nsq && !skip_next_sq) {
+                md_encode_block(
+                    sequence_control_set_ptr,
+                    picture_control_set_ptr,
+                    context_ptr,
+                    input_picture_ptr,
+                    ss_mecontext,
+                    &skip_sub_blocks,
+                    lcuAddr,
+                    bestcandidate_buffers);
+
+            }
+            else if (skip_next_sq) {
+                context_ptr->md_local_cu_unit[context_ptr->cu_ptr->mds_idx].cost = (MAX_MODE_COST >> 10);
             }
             else {
-                skip_next_sq = 0;
+                // If the block is out of the boundaries, md is not performed.
+                // - For square blocks, since the blocks can be further splitted, they are considered in d2_inter_depth_block_decision with cost of zero.
+                // - For non square blocks, since they can not be splitted further the cost is set to a large value (MAX_MODE_COST >> 4) to make sure they are not selected.
+                //   The value is set to MAX_MODE_COST >> 4 to make sure there is not overflow when adding costs.
+                if (context_ptr->blk_geom->shape != PART_N)
+                    context_ptr->md_local_cu_unit[context_ptr->cu_ptr->mds_idx].cost = (MAX_MODE_COST >> 4);
+                else
+                    context_ptr->md_local_cu_unit[context_ptr->cu_ptr->mds_idx].cost = 0;
             }
+#if FIX_SKIP_REDUNDANT_BLOCK
         }
-        // skip until we reach the next block @ the parent block depth
-        if (cu_ptr->mds_idx >= next_non_skip_blk_idx_mds && skip_next_sq == 1)
-            skip_next_sq = 0;
-
-        if (picture_control_set_ptr->parent_pcs_ptr->sequence_control_set_ptr->sb_geom[lcuAddr].block_is_allowed[cu_ptr->mds_idx] && !skip_next_nsq && !skip_next_sq) {
-            md_encode_block(
-                sequence_control_set_ptr,
-                picture_control_set_ptr,
-                context_ptr,
-                input_picture_ptr,
-                ss_mecontext,
-                &skip_sub_blocks,
-                lcuAddr,
-                bestcandidate_buffers);
-
-        }
-        else if (skip_next_sq) {
-            context_ptr->md_local_cu_unit[context_ptr->cu_ptr->mds_idx].cost = (MAX_MODE_COST >> 10);
-        }
-        else {
-            // If the block is out of the boundaries, md is not performed.
-            // - For square blocks, since the blocks can be further splitted, they are considered in d2_inter_depth_block_decision with cost of zero.
-            // - For non square blocks, since they can not be splitted further the cost is set to a large value (MAX_MODE_COST >> 4) to make sure they are not selected.
-            //   The value is set to MAX_MODE_COST >> 4 to make sure there is not overflow when adding costs.
-            if (context_ptr->blk_geom->shape != PART_N)
-                context_ptr->md_local_cu_unit[context_ptr->cu_ptr->mds_idx].cost = (MAX_MODE_COST >> 4);
-            else
-                context_ptr->md_local_cu_unit[context_ptr->cu_ptr->mds_idx].cost = 0;
-        }
-
+#endif
         skip_next_nsq = 0;
         if (blk_geom->nsi + 1 == blk_geom->totns)
             d1_non_square_block_decision(context_ptr);

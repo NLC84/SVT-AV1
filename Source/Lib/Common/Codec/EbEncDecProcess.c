@@ -1253,8 +1253,11 @@ EbErrorType signal_derivation_enc_dec_kernel_oq(
         context_ptr->global_mv_injection = 1;
     else
         context_ptr->global_mv_injection = 0;
-
+#if FIX_NEAREST_NEW
+    if (picture_control_set_ptr->enc_mode <= ENC_M0 && picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag)
+#else
     if (picture_control_set_ptr->enc_mode == ENC_M0)
+#endif
         context_ptr->new_nearest_near_comb_injection = 1;
     else
         context_ptr->new_nearest_near_comb_injection = 0;
@@ -1464,10 +1467,18 @@ EbErrorType signal_derivation_enc_dec_kernel_oq(
     else
         context_ptr->redundant_blk = EB_FALSE;
     if (sequence_control_set_ptr->static_config.encoder_bit_depth == EB_8BIT)
+#if FIX_ESTIMATE_INTRA
+        if (MR_MODE)
+#else
         if (MR_MODE || picture_control_set_ptr->enc_mode == ENC_M0)
+#endif
             context_ptr->edge_based_skip_angle_intra = 0;
         else
+#if FIX_ESTIMATE_INTRA
+            context_ptr->edge_based_skip_angle_intra = (picture_control_set_ptr->enc_mode == ENC_M0 && picture_control_set_ptr->parent_pcs_ptr->temporal_layer_index == 0) ? 0 : 1;
+#else
             context_ptr->edge_based_skip_angle_intra = 1;
+#endif
     else
         context_ptr->edge_based_skip_angle_intra = 0;
     if (picture_control_set_ptr->parent_pcs_ptr->sc_content_detected || picture_control_set_ptr->enc_mode == ENC_M0)

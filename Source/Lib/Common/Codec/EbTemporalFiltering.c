@@ -1496,6 +1496,11 @@ static void tf_inter_prediction(PictureParentControlSet *picture_control_set_ptr
                                     0,//ref_frame_type,
                                     &mv_unit,
                                     0,//use_intrabc,
+#if OBMC_FLAG
+                                    SIMPLE_TRANSLATION,
+                                    0,
+                                    0,
+#endif
                                     1,//compound_idx not used
                                     NULL,// interinter_comp not used
 #if II_COMP_FLAG
@@ -1526,6 +1531,9 @@ static void tf_inter_prediction(PictureParentControlSet *picture_control_set_ptr
                                                      &cu_ptr,
                                                      &mv_unit,
                                                      0, //use_intrabc,
+#if OBMC_FLAG
+                                                     SIMPLE_TRANSLATION,
+#endif
                                                      pu_origin_x,
                                                      pu_origin_y,
                                                      bsize,
@@ -1577,6 +1585,11 @@ static void tf_inter_prediction(PictureParentControlSet *picture_control_set_ptr
                             0,//ref_frame_type,
                             &mv_unit,
                             0,//use_intrabc,
+#if OBMC_FLAG
+                            SIMPLE_TRANSLATION,
+                            0,
+                            0,
+#endif
                             1,//compound_idx not used
                             NULL,// interinter_comp not used
 #if II_COMP_FLAG
@@ -1607,6 +1620,9 @@ static void tf_inter_prediction(PictureParentControlSet *picture_control_set_ptr
                                              &cu_ptr,
                                              &mv_unit,
                                              0, //use_intrabc,
+#if OBMC_FLAG
+                                             SIMPLE_TRANSLATION,
+#endif
                                              pu_origin_x,
                                              pu_origin_y,
                                              bsize,
@@ -2290,13 +2306,15 @@ EbErrorType svt_av1_init_temporal_filtering(PictureParentControlSet **list_pictu
         adjust_filter_strength(noise_level, altref_strength_ptr, is_highbd, encoder_bit_depth);
 
         // Pad chroma reference samples - once only per picture
-        for (int i = 0 ; i < (picture_control_set_ptr_central->past_altref_nframes + picture_control_set_ptr_central->future_altref_nframes + 1); i++) {
+        for (int i = 0; i < (picture_control_set_ptr_central->past_altref_nframes + picture_control_set_ptr_central->future_altref_nframes + 1); i++) {
             EbPictureBufferDesc *pic_ptr_ref = list_picture_control_set_ptr[i]->enhanced_picture_ptr;
-
-            generate_padding_pic(pic_ptr_ref,
-                                 ss_x,
-                                 ss_y,
-                                 is_highbd);
+#if FIX_ALTREF
+            if (i != picture_control_set_ptr_central->past_altref_nframes)
+#endif
+                generate_padding_pic(pic_ptr_ref,
+                    ss_x,
+                    ss_y,
+                    is_highbd);
         }
 
         picture_control_set_ptr_central->temporal_filtering_on = EB_TRUE; // set temporal filtering flag ON for current picture
