@@ -2341,7 +2341,11 @@ void md_stage_0(
 
     context_ptr->md_staging_skip_interpolation_search = (context_ptr->md_staging_mode) ? EB_TRUE : picture_control_set_ptr->parent_pcs_ptr->interpolation_search_level >= IT_SEARCH_FAST_LOOP_UV_BLIND ? EB_FALSE : EB_TRUE;
 #if FILTER_INTRA_FLAG
+#if REMOVE_MD_STAGE_1
+    context_ptr->md_staging_skip_inter_chroma_pred = (context_ptr->md_staging_mode && context_ptr->target_class != CAND_CLASS_0 && context_ptr->target_class != CAND_CLASS_6) ? EB_TRUE : EB_FALSE;
+#else
     context_ptr->md_staging_skip_inter_chroma_pred = (context_ptr->md_staging_mode && context_ptr->md_stage == MD_STAGE_0 && context_ptr->target_class != CAND_CLASS_0 && context_ptr->target_class != CAND_CLASS_6) ? EB_TRUE : EB_FALSE;
+#endif
 #else
     context_ptr->md_staging_skip_inter_chroma_pred = (context_ptr->md_staging_mode && context_ptr->md_stage == MD_STAGE_0 && context_ptr->target_class != CAND_CLASS_0) ? EB_TRUE : EB_FALSE;
 #endif
@@ -6092,8 +6096,11 @@ void md_stage_2(
             asm_type);
     }
 }
-
+#if REMOVE_MD_STAGE_1
+void md_stage_2(
+#else
 void md_stage_3(
+#endif
     PictureControlSet     *picture_control_set_ptr,
     LargestCodingUnit     *sb_ptr,
     CodingUnit            *cu_ptr,
@@ -7457,8 +7464,9 @@ void md_encode_block(
 #else
         context_ptr->md_stage_2_total_count = 0;
         context_ptr->md_stage_3_total_count = 0;
-#endif
+
         context_ptr->md_stage = MD_STAGE_0;
+#endif
         for (cand_class_it = CAND_CLASS_0; cand_class_it < CAND_CLASS_TOTAL; cand_class_it++) {
 
             //number of next level candidates could not exceed number of curr level candidates
@@ -7577,15 +7585,16 @@ void md_encode_block(
 
 
         // 1st Full-Loop
-        context_ptr->md_stage = MD_STAGE_2;
-        for (cand_class_it = CAND_CLASS_0; cand_class_it < CAND_CLASS_TOTAL; cand_class_it++) {
 #if REMOVE_MD_STAGE_1
+        for (cand_class_it = CAND_CLASS_0; cand_class_it < CAND_CLASS_TOTAL; cand_class_it++) {
             //number of next level candidates could not exceed number of curr level candidates
             context_ptr->md_stage_2_count[cand_class_it] = MIN(context_ptr->md_stage_1_count[cand_class_it], context_ptr->md_stage_2_count[cand_class_it]);
             context_ptr->md_stage_2_total_count += context_ptr->md_stage_2_count[cand_class_it];
 
             if (context_ptr->bypass_md_stage_1[cand_class_it] == EB_FALSE && context_ptr->md_stage_1_count[cand_class_it] > 0 && context_ptr->md_stage_2_count[cand_class_it] > 0) {
 #else
+        context_ptr->md_stage = MD_STAGE_2;
+        for (cand_class_it = CAND_CLASS_0; cand_class_it < CAND_CLASS_TOTAL; cand_class_it++) {
             //number of next level candidates could not exceed number of curr level candidates
             context_ptr->md_stage_3_count[cand_class_it] = MIN(context_ptr->md_stage_2_count[cand_class_it], context_ptr->md_stage_3_count[cand_class_it]);
             context_ptr->md_stage_3_total_count += context_ptr->md_stage_3_count[cand_class_it];
@@ -7645,8 +7654,12 @@ void md_encode_block(
             context_ptr->sorted_candidate_index_array);
 
         // 2nd Full-Loop
+#if REMOVE_MD_STAGE_1
+        md_stage_2(
+#else
         context_ptr->md_stage = MD_STAGE_3;
         md_stage_3(
+#endif
             picture_control_set_ptr,
             context_ptr->sb_ptr,
             cu_ptr,
