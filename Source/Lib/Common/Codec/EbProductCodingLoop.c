@@ -2208,8 +2208,11 @@ void sort_stage2_candidates(
         }
     }
 }
-
+#if REMOVE_MD_STAGE_1
+void construct_best_sorted_arrays_md_stage_1(
+#else
 void construct_best_sorted_arrays_md_stage_2(
+#endif
     struct ModeDecisionContext   *context_ptr,
     ModeDecisionCandidateBuffer **buffer_ptr_array,
     uint32_t                      *best_candidate_index_array,
@@ -2227,10 +2230,11 @@ void construct_best_sorted_arrays_md_stage_2(
 #endif
             sorted_candidate_index_array[best_candi++] = context_ptr->cand_buff_indices[class_i][candi];
 
-    assert(best_candi == context_ptr->md_stage_2_total_count);
 #if REMOVE_MD_STAGE_1
+    assert(best_candi == context_ptr->md_stage_1_total_count);
     uint32_t fullReconCandidateCount = context_ptr->md_stage_1_total_count;
 #else
+    assert(best_candi == context_ptr->md_stage_2_total_count);
     uint32_t fullReconCandidateCount = context_ptr->md_stage_2_total_count;
 #endif
 
@@ -2257,8 +2261,11 @@ void construct_best_sorted_arrays_md_stage_2(
     *ref_fast_cost = *(buffer_ptr_array[sorted_candidate_index_array[0]]->fast_cost_ptr);
 }
 
-
+#if REMOVE_MD_STAGE_1
+void construct_best_sorted_arrays_md_stage_2(
+#else
 void construct_best_sorted_arrays_md_stage_3(
+#endif
     struct ModeDecisionContext   *context_ptr,
     ModeDecisionCandidateBuffer **buffer_ptr_array,
     uint32_t                      *best_candidate_index_array,
@@ -2275,10 +2282,11 @@ void construct_best_sorted_arrays_md_stage_3(
 #endif
             sorted_candidate_index_array[best_candi++] = context_ptr->cand_buff_indices[class_i][candi];
 
-    assert(best_candi == context_ptr->md_stage_3_total_count);
 #if REMOVE_MD_STAGE_1
+    assert(best_candi == context_ptr->md_stage_2_total_count);
     uint32_t fullReconCandidateCount = context_ptr->md_stage_2_total_count;
 #else
+    assert(best_candi == context_ptr->md_stage_3_total_count);
     uint32_t fullReconCandidateCount = context_ptr->md_stage_3_total_count;
 #endif
     //sort best: inter, then intra
@@ -6004,8 +6012,11 @@ void full_loop_core(
         candidate_buffer->y_coeff_bits = y_coeff_bits;
         candidate_ptr->full_distortion = (uint32_t)(y_full_distortion[0]);
 }
-
+#if REMOVE_MD_STAGE_1
+void md_stage_1(
+#else
 void md_stage_2(
+#endif
     PictureControlSet     *picture_control_set_ptr,
     LargestCodingUnit     *sb_ptr,
     CodingUnit            *cu_ptr,
@@ -7553,7 +7564,11 @@ void md_encode_block(
         memset(context_ptr->sorted_candidate_index_array, 0xFFFFFFFF, MAX_NFL * sizeof(uint32_t));
 
         uint64_t ref_fast_cost = MAX_MODE_COST;
+#if REMOVE_MD_STAGE_1
+        construct_best_sorted_arrays_md_stage_1(
+#else
         construct_best_sorted_arrays_md_stage_2(
+#endif
             context_ptr,
             candidate_buffer_ptr_array,
             context_ptr->best_candidate_index_array,
@@ -7578,7 +7593,11 @@ void md_encode_block(
             if (context_ptr->bypass_stage2[cand_class_it] == EB_FALSE && context_ptr->md_stage_2_count[cand_class_it] > 0 && context_ptr->md_stage_3_count[cand_class_it] > 0) {
 #endif
                 context_ptr->target_class = cand_class_it;
+#if REMOVE_MD_STAGE_1
+                md_stage_1(
+#else
                 md_stage_2(
+#endif
                     picture_control_set_ptr,
                     context_ptr->sb_ptr,
                     cu_ptr,
@@ -7609,10 +7628,17 @@ void md_encode_block(
 #endif
             }
         }
+
+        
+#if REMOVE_MD_STAGE_1
+        assert(context_ptr->md_stage_2_total_count <= MAX_NFL);
+        assert(context_ptr->md_stage_2_total_count > 0);
+        construct_best_sorted_arrays_md_stage_2(
+#else
         assert(context_ptr->md_stage_3_total_count <= MAX_NFL);
         assert(context_ptr->md_stage_3_total_count > 0);
-
         construct_best_sorted_arrays_md_stage_3(
+#endif
             context_ptr,
             candidate_buffer_ptr_array,
             context_ptr->best_candidate_index_array,
