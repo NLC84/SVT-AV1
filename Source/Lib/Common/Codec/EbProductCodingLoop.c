@@ -1575,8 +1575,6 @@ void set_md_stage_counts(
     uint32_t                 fastCandidateTotalCount)
 {
     SequenceControlSet* scs = (SequenceControlSet*)(picture_control_set_ptr->sequence_control_set_wrapper_ptr->object_ptr);
-    // Step 0: derive bypass_stage1 flags
-    memset(context_ptr->bypass_stage1, EB_TRUE, CAND_CLASS_TOTAL);
 
     // Step 1: derive bypass_stage1 flags
     if (context_ptr->md_staging_mode)
@@ -1587,47 +1585,22 @@ void set_md_stage_counts(
         context_ptr->bypass_stage2[CAND_CLASS_2] = EB_TRUE;
         context_ptr->bypass_stage2[CAND_CLASS_3] = EB_TRUE;
         context_ptr->bypass_stage2[CAND_CLASS_4] = EB_TRUE;
-    }
-#elif REMOVE_MD_STAGE_1
-        memset(context_ptr->bypass_stage2, EB_FALSE, CAND_CLASS_TOTAL);
-#else
-    {
-        context_ptr->bypass_stage2[CAND_CLASS_0] = EB_FALSE;
-#if FILTER_INTRA_FLAG
-        context_ptr->bypass_stage2[CAND_CLASS_6] = EB_FALSE;
-#endif
-
-        if (context_ptr->md_staging_mode == MD_STAGING_MODE_2 || context_ptr->md_staging_mode == MD_STAGING_MODE_3) {
-            context_ptr->bypass_stage2[CAND_CLASS_1] = EB_FALSE;
-            context_ptr->bypass_stage2[CAND_CLASS_2] = EB_FALSE;
-            context_ptr->bypass_stage2[CAND_CLASS_3] = context_ptr->combine_class12 ? EB_TRUE : EB_FALSE;
-        }
-        else {
-            context_ptr->bypass_stage2[CAND_CLASS_1] = EB_TRUE;
-            context_ptr->bypass_stage2[CAND_CLASS_2] = EB_TRUE;
-            context_ptr->bypass_stage2[CAND_CLASS_3] = EB_TRUE;
-        }
-#if II_COMP_FLAG
-        context_ptr->bypass_stage2[CAND_CLASS_4] = EB_TRUE;
-#endif
-#if OBMC_FLAG
         context_ptr->bypass_stage2[CAND_CLASS_5] = EB_TRUE;
-#endif
+        context_ptr->bypass_stage2[CAND_CLASS_6] = EB_FALSE;
     }
+#else
+        memset(context_ptr->bypass_stage2, EB_FALSE, CAND_CLASS_TOTAL);
 #endif
     else
         memset(context_ptr->bypass_stage2, EB_TRUE, CAND_CLASS_TOTAL);
+
     // Step 2: set md_stage count
     context_ptr->md_stage_1_count[CAND_CLASS_0] = (picture_control_set_ptr->slice_type == I_SLICE) ? fastCandidateTotalCount : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? INTRA_NFL : (INTRA_NFL >> 1);
-#if FILTER_INTRA_FLAG
-    context_ptr->md_stage_1_count[CAND_CLASS_6] = 5;
-#endif
     context_ptr->md_stage_1_count[CAND_CLASS_1] = (picture_control_set_ptr->slice_type == I_SLICE) ? 0 : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? INTER_NEW_NFL : (INTER_NEW_NFL >> 1);
     context_ptr->md_stage_1_count[CAND_CLASS_2] = (picture_control_set_ptr->slice_type == I_SLICE) ? 0 : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? INTER_PRED_NFL : (INTER_PRED_NFL >> 1);
     context_ptr->md_stage_1_count[CAND_CLASS_3] = (picture_control_set_ptr->slice_type == I_SLICE) ? 0 : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? INTER_PRED_NFL : (INTER_PRED_NFL >> 1);
-
 #if II_COMP_FLAG
-    context_ptr->md_stage_1_count[CAND_CLASS_4] = (picture_control_set_ptr->slice_type == I_SLICE) ? 0 : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? 14 : 6;// INTER_PRED_NFL: (INTER_PRED_NFL >> 1);
+    context_ptr->md_stage_1_count[CAND_CLASS_4] = (picture_control_set_ptr->slice_type == I_SLICE) ? 0 : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? 14 : 6;
 #endif
 #if OBMC_FLAG
     if (picture_control_set_ptr->parent_pcs_ptr->pic_obmc_mode == 1)
@@ -1637,27 +1610,31 @@ void set_md_stage_counts(
     else
         context_ptr->md_stage_1_count[CAND_CLASS_5] = (picture_control_set_ptr->temporal_layer_index == 0) ? 12 : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? 8 : 4;
 #endif
-    if (picture_control_set_ptr->enc_mode >= ENC_M2) {
-        context_ptr->md_stage_1_count[CAND_CLASS_1] = context_ptr->md_stage_1_count[CAND_CLASS_1] / 2;
-        context_ptr->md_stage_1_count[CAND_CLASS_2] = context_ptr->md_stage_1_count[CAND_CLASS_2] / 2;
-        context_ptr->md_stage_1_count[CAND_CLASS_3] = context_ptr->md_stage_1_count[CAND_CLASS_3] / 2;
-    }
+#if FILTER_INTRA_FLAG
+    context_ptr->md_stage_1_count[CAND_CLASS_6] = 5;
+#endif
+
+
 
     context_ptr->md_stage_2_count[CAND_CLASS_0] = (picture_control_set_ptr->slice_type == I_SLICE) ? fastCandidateTotalCount : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? INTRA_NFL : (INTRA_NFL >> 1);
-#if FILTER_INTRA_FLAG
-    context_ptr->md_stage_2_count[CAND_CLASS_6] = 5;
-#endif
     context_ptr->md_stage_2_count[CAND_CLASS_1] = (picture_control_set_ptr->slice_type == I_SLICE) ? 0 : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? 14 : 4;
     context_ptr->md_stage_2_count[CAND_CLASS_2] = (picture_control_set_ptr->slice_type == I_SLICE) ? 0 : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? 14 : 4;
     context_ptr->md_stage_2_count[CAND_CLASS_3] = (picture_control_set_ptr->slice_type == I_SLICE) ? 0 : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? 14 : 4;
-
 #if II_COMP_FLAG
     context_ptr->md_stage_2_count[CAND_CLASS_4] = (picture_control_set_ptr->slice_type == I_SLICE) ? 0 : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? 12 : 4;// 14 : 4;
 #endif
 #if OBMC_FLAG
     context_ptr->md_stage_2_count[CAND_CLASS_5] = (picture_control_set_ptr->slice_type == I_SLICE) ? 0 : 16;
 #endif
+#if FILTER_INTRA_FLAG
+    context_ptr->md_stage_2_count[CAND_CLASS_6] = 5;
+#endif
+
+
     if (picture_control_set_ptr->enc_mode >= ENC_M2) {
+        context_ptr->md_stage_1_count[CAND_CLASS_1] = context_ptr->md_stage_1_count[CAND_CLASS_1] / 2;
+        context_ptr->md_stage_1_count[CAND_CLASS_2] = context_ptr->md_stage_1_count[CAND_CLASS_2] / 2;
+        context_ptr->md_stage_1_count[CAND_CLASS_3] = context_ptr->md_stage_1_count[CAND_CLASS_3] / 2;
         context_ptr->md_stage_2_count[CAND_CLASS_1] = (picture_control_set_ptr->slice_type == I_SLICE) ? 0 : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? 12 : 3;
         context_ptr->md_stage_2_count[CAND_CLASS_2] = (picture_control_set_ptr->slice_type == I_SLICE) ? 0 : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? 4 : 2;   
         context_ptr->md_stage_2_count[CAND_CLASS_1] = (picture_control_set_ptr->slice_type == I_SLICE) ? 0 : (picture_control_set_ptr->parent_pcs_ptr->is_used_as_reference_flag) ? 6 : 2;
@@ -1751,16 +1728,22 @@ void set_md_stage_counts(
         }
     }
 
-    // Step 3: update count for md_stage_1 and d_stage_2 if  bypassed (no NIC setting should be done beyond this point)
-    context_ptr->md_stage_2_count[CAND_CLASS_0] = context_ptr->bypass_stage1[CAND_CLASS_0] ? context_ptr->md_stage_1_count[CAND_CLASS_0] : context_ptr->md_stage_2_count[CAND_CLASS_0];
-    context_ptr->md_stage_2_count[CAND_CLASS_1] = context_ptr->bypass_stage1[CAND_CLASS_1] ? context_ptr->md_stage_1_count[CAND_CLASS_1] : context_ptr->md_stage_2_count[CAND_CLASS_1];
-    context_ptr->md_stage_2_count[CAND_CLASS_2] = context_ptr->bypass_stage1[CAND_CLASS_2] ? context_ptr->md_stage_1_count[CAND_CLASS_2] : context_ptr->md_stage_2_count[CAND_CLASS_2];
-    context_ptr->md_stage_2_count[CAND_CLASS_3] = context_ptr->bypass_stage1[CAND_CLASS_3] ? context_ptr->md_stage_1_count[CAND_CLASS_3] : context_ptr->md_stage_2_count[CAND_CLASS_3];
+    // Step 3: update count for md_stage_1 and d_stage_2 if bypassed (no NIC setting should be done beyond this point)
+    context_ptr->md_stage_2_count[CAND_CLASS_0] = context_ptr->md_stage_1_count[CAND_CLASS_0];
+    context_ptr->md_stage_2_count[CAND_CLASS_1] = context_ptr->md_stage_1_count[CAND_CLASS_1];
+    context_ptr->md_stage_2_count[CAND_CLASS_2] = context_ptr->md_stage_1_count[CAND_CLASS_2];
+    context_ptr->md_stage_2_count[CAND_CLASS_3] = context_ptr->md_stage_1_count[CAND_CLASS_3];
+    context_ptr->md_stage_2_count[CAND_CLASS_4] = context_ptr->md_stage_1_count[CAND_CLASS_4];
+    context_ptr->md_stage_2_count[CAND_CLASS_5] = context_ptr->md_stage_1_count[CAND_CLASS_5];
+    context_ptr->md_stage_2_count[CAND_CLASS_6] = context_ptr->md_stage_1_count[CAND_CLASS_6];
 
     context_ptr->md_stage_3_count[CAND_CLASS_0] = context_ptr->bypass_stage2[CAND_CLASS_0] ? context_ptr->md_stage_2_count[CAND_CLASS_0] : context_ptr->md_stage_3_count[CAND_CLASS_0];
     context_ptr->md_stage_3_count[CAND_CLASS_1] = context_ptr->bypass_stage2[CAND_CLASS_1] ? context_ptr->md_stage_2_count[CAND_CLASS_1] : context_ptr->md_stage_3_count[CAND_CLASS_1];
     context_ptr->md_stage_3_count[CAND_CLASS_2] = context_ptr->bypass_stage2[CAND_CLASS_2] ? context_ptr->md_stage_2_count[CAND_CLASS_2] : context_ptr->md_stage_3_count[CAND_CLASS_2];
     context_ptr->md_stage_3_count[CAND_CLASS_3] = context_ptr->bypass_stage2[CAND_CLASS_3] ? context_ptr->md_stage_2_count[CAND_CLASS_3] : context_ptr->md_stage_3_count[CAND_CLASS_3];
+    context_ptr->md_stage_3_count[CAND_CLASS_4] = context_ptr->bypass_stage2[CAND_CLASS_4] ? context_ptr->md_stage_2_count[CAND_CLASS_4] : context_ptr->md_stage_3_count[CAND_CLASS_4];
+    context_ptr->md_stage_3_count[CAND_CLASS_5] = context_ptr->bypass_stage2[CAND_CLASS_5] ? context_ptr->md_stage_2_count[CAND_CLASS_5] : context_ptr->md_stage_3_count[CAND_CLASS_5];
+    context_ptr->md_stage_3_count[CAND_CLASS_6] = context_ptr->bypass_stage2[CAND_CLASS_6] ? context_ptr->md_stage_2_count[CAND_CLASS_6] : context_ptr->md_stage_3_count[CAND_CLASS_6];
 }
 #else
 void set_md_stage_counts(

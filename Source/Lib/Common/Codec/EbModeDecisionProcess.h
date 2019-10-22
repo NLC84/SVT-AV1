@@ -259,7 +259,6 @@ extern "C" {
 
     uint8_t                             md_staging_mode;
 #if REMOVE_MD_STAGE_1
-    uint8_t                             bypass_stage1[CAND_CLASS_TOTAL];
     uint8_t                             bypass_stage2[CAND_CLASS_TOTAL];
 
     uint32_t                            md_stage_0_count[CAND_CLASS_TOTAL]; // how many fast candiates per class
