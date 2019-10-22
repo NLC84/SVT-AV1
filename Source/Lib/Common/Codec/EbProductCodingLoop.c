@@ -1580,13 +1580,13 @@ void set_md_stage_counts(
     if (context_ptr->md_staging_mode)
 #if BYPASS_MD_STAGE_2
     {
-        context_ptr->bypass_stage2[CAND_CLASS_0] = EB_FALSE;
-        context_ptr->bypass_stage2[CAND_CLASS_1] = EB_TRUE;
-        context_ptr->bypass_stage2[CAND_CLASS_2] = EB_TRUE;
-        context_ptr->bypass_stage2[CAND_CLASS_3] = EB_TRUE;
-        context_ptr->bypass_stage2[CAND_CLASS_4] = EB_TRUE;
-        context_ptr->bypass_stage2[CAND_CLASS_5] = EB_TRUE;
-        context_ptr->bypass_stage2[CAND_CLASS_6] = EB_FALSE;
+        context_ptr->bypass_md_stage_1[CAND_CLASS_0] = EB_FALSE;
+        context_ptr->bypass_md_stage_1[CAND_CLASS_1] = EB_TRUE;
+        context_ptr->bypass_md_stage_1[CAND_CLASS_2] = EB_TRUE;
+        context_ptr->bypass_md_stage_1[CAND_CLASS_3] = EB_TRUE;
+        context_ptr->bypass_md_stage_1[CAND_CLASS_4] = EB_TRUE;
+        context_ptr->bypass_md_stage_1[CAND_CLASS_5] = EB_TRUE;
+        context_ptr->bypass_md_stage_1[CAND_CLASS_6] = EB_FALSE;
     }
 #else
         memset(context_ptr->bypass_md_stage_1, EB_FALSE, CAND_CLASS_TOTAL);
