@@ -2498,7 +2498,7 @@ void md_stage_0(
         MAX_CU_COST :
         *(candidate_buffer_ptr_array_base[highestCostIndex]->fast_cost_ptr);
 }
-
+#if !REMOVE_MD_STAGE_1
 void md_stage_1(
     PictureControlSet            *picture_control_set_ptr,
     ModeDecisionContext          *context_ptr,
@@ -2547,7 +2547,7 @@ void md_stage_1(
         }
     }
 }
-
+#endif
 void predictive_me_full_pel_search(
     const SequenceControlSet *sequence_control_set_ptr,
     PictureControlSet        *picture_control_set_ptr,
@@ -7287,6 +7287,7 @@ void search_best_independent_uv_mode(
     context_ptr->uv_search_path = EB_FALSE;
 }
 #if SPEED_OPT
+#if !REMOVE_MD_STAGE_1
 void inter_class_decision_count_1(
     struct ModeDecisionContext   *context_ptr
 )
@@ -7306,6 +7307,7 @@ void inter_class_decision_count_1(
         }
     }
 }
+#endif
 extern aom_variance_fn_ptr_t mefn_ptr[BlockSizeS_ALL];
 unsigned int eb_av1_get_sby_perpixel_variance(const aom_variance_fn_ptr_t *fn_ptr, const uint8_t *src, int stride, BlockSize bs);
 #endif
@@ -7527,16 +7529,34 @@ void md_encode_block(
                     buffer_start_idx,
                     buffer_count_for_curr_class, //how many cand buffers to sort. one of the buffers can have max cost.
                     context_ptr->cand_buff_indices[cand_class_it]);
-
+#if REMOVE_MD_STAGE_1
+                // Distortion-based NIC proning to CLASS_1, CLASS_2, CLASS_3
+                if (cand_class_it == CAND_CLASS_1 || cand_class_it == CAND_CLASS_2 || cand_class_it == CAND_CLASS_3) {
+                    uint32_t *cand_buff_indices = context_ptr->cand_buff_indices[cand_class_it];
+                    if (*(context_ptr->candidate_buffer_ptr_array[cand_buff_indices[0]]->fast_cost_ptr) < *(context_ptr->candidate_buffer_ptr_array[context_ptr->cand_buff_indices[CAND_CLASS_0][0]]->fast_cost_ptr)) {
+                        uint32_t fast1_cand_count = 1;
+                        while (fast1_cand_count < context_ptr->md_stage_1_count[cand_class_it] && ((((*(context_ptr->candidate_buffer_ptr_array[cand_buff_indices[fast1_cand_count]]->fast_cost_ptr) - *(context_ptr->candidate_buffer_ptr_array[cand_buff_indices[0]]->fast_cost_ptr)) * 100) / (*(context_ptr->candidate_buffer_ptr_array[cand_buff_indices[0]]->fast_cost_ptr))) < context_ptr->dist_base_md_stage_0_count_th)) {
+                            fast1_cand_count++;
+                        }
+                        context_ptr->md_stage_1_count[cand_class_it] = fast1_cand_count;
+                    }
+                }
+#endif
                 buffer_start_idx += buffer_count_for_curr_class;//for next iteration.
 
             }
+#if REMOVE_MD_STAGE_1
+            //number of next level candidates could not exceed number of curr level candidates
+            context_ptr->md_stage_2_count[cand_class_it] = MIN(context_ptr->md_stage_1_count[cand_class_it], context_ptr->md_stage_2_count[cand_class_it]);
+            context_ptr->md_stage_2_total_count += context_ptr->md_stage_2_count[cand_class_it];
+#endif
         }
-
+#if !REMOVE_MD_STAGE_1
 #if SPEED_OPT
         //after completing stage0, we might shorten cand count for some classes.
         inter_class_decision_count_1(context_ptr);
 #endif
+
         context_ptr->md_stage = MD_STAGE_1;
         for (cand_class_it = CAND_CLASS_0; cand_class_it < CAND_CLASS_TOTAL; cand_class_it++) {
 
@@ -7569,7 +7589,7 @@ void md_encode_block(
                     context_ptr->cand_buff_indices[cand_class_it]);
             }
         }
-
+#endif
         memset(context_ptr->best_candidate_index_array, 0xFFFFFFFF, MAX_NFL_BUFF * sizeof(uint32_t));
         memset(context_ptr->sorted_candidate_index_array, 0xFFFFFFFF, MAX_NFL * sizeof(uint32_t));
 
