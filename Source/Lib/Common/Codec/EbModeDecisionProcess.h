@@ -269,9 +269,9 @@ extern "C" {
 
     uint32_t                            md_stage_2_total_count;
     uint32_t                            md_stage_3_total_count;
-
+#if !REMOVE_MD_STAGE_1
     uint8_t                             combine_class12; //1:class1 and 2 are combined.
-
+#endif
     CAND_CLASS                          target_class;
 
     // fast_loop_core signals

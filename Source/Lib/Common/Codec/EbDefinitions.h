@@ -77,6 +77,15 @@ extern "C" {
                                             // Actions in the second pass: Frame and SB QP assignment and temporal filtering strenght change
 #define TWO_PASS_USE_2NDP_ME_IN_1STP      1 // Add a config parameter to the first pass to use the ME settings of the second pass
 
+#define REMOVE_MD_STAGE_1                 1 //Remove MD Stage 1 
+#if REMOVE_MD_STAGE_1                     
+#define IF_CHROMA_LAST_STAGE_ONLY         0
+#define MIN_COUNT_4_MD_STAGE_3            0
+#define MIN_COUNT_6_MD_STAGE_3            1
+#define IF_TEST                           1
+#define BYPASS_MD_STAGE_2                 0
+#endif
+
 //FOR DEBUGGING - Do not remove
 #define NO_ENCDEC                         0 // bypass encDec to test cmpliance of MD. complained achieved when skip_flag is OFF. Port sample code from VCI-SW_AV1_Candidate1 branch
 

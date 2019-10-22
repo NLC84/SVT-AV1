@@ -1333,6 +1333,12 @@ EbErrorType signal_derivation_enc_dec_kernel_oq(
 
     // Derive md_staging_mode
     //
+#if REMOVE_MD_STAGE_1
+    if (picture_control_set_ptr->enc_mode <= ENC_M4)
+        context_ptr->md_staging_mode = MD_STAGING_MODE_3;
+    else
+        context_ptr->md_staging_mode = MD_STAGING_MODE_0;
+#else
     // MD_STAGING_MODE_1
     //  _______________________________________________________________________________________________________________________________________________
     // |        | md_stage_0                  | md_stage_1                  | md_stage_2                     | md_stage_3                              |
@@ -1422,7 +1428,7 @@ EbErrorType signal_derivation_enc_dec_kernel_oq(
     // 0                    OFF
     // 1                    ON
     context_ptr->combine_class12 = (picture_control_set_ptr->enc_mode == ENC_M0) ? 0 : 1;
-
+#endif
     // Set interpolation filter search blk size
     // Level                Settings
     // 0                    ON for 8x8 and above

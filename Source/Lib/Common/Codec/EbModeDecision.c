@@ -5548,6 +5548,18 @@ EbErrorType generate_md_stage_0_cand(
                 }
                 else
 #endif
+#if REMOVE_MD_STAGE_1
+                if (cand_ptr->is_new_mv) {
+                    // ME pred
+                    cand_ptr->cand_class = CAND_CLASS_1;
+                    context_ptr->md_stage_0_count[CAND_CLASS_1]++;
+                }
+                else {
+                    // MV pred
+                    cand_ptr->cand_class = CAND_CLASS_2;
+                    context_ptr->md_stage_0_count[CAND_CLASS_2]++;
+                }
+#else
                 if (context_ptr->combine_class12) {
                     cand_ptr->cand_class = CAND_CLASS_1;
                     context_ptr->md_stage_0_count[CAND_CLASS_1]++;
@@ -5564,6 +5576,7 @@ EbErrorType generate_md_stage_0_cand(
                         context_ptr->md_stage_0_count[CAND_CLASS_2]++;
                     }
                 }
+#endif
             }
             else {
 #if !OBMC_FLAG
