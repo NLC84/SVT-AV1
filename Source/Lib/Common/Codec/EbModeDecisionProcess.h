@@ -264,6 +264,8 @@ extern "C" {
 
     uint32_t                            md_stage_1_total_count;
     uint32_t                            md_stage_2_total_count;
+
+    uint8_t                             combine_class12; // 1:class1 and 2 are combined.
 #else
     MD_STAGE                            md_stage;
 

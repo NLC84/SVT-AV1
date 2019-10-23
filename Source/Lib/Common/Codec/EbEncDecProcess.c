@@ -1423,12 +1423,12 @@ EbErrorType signal_derivation_enc_dec_kernel_oq(
         context_ptr->md_staging_mode = MD_STAGING_MODE_3;
     else
         context_ptr->md_staging_mode = MD_STAGING_MODE_0; // Default structure = fast loop + full loop = md_stage_0 + md_stage_3
-
+#endif
     // Combine MD Class1&2
     // 0                    OFF
     // 1                    ON
     context_ptr->combine_class12 = (picture_control_set_ptr->enc_mode == ENC_M0) ? 0 : 1;
-#endif
+
     // Set interpolation filter search blk size
     // Level                Settings
     // 0                    ON for 8x8 and above

@@ -79,10 +79,10 @@ extern "C" {
 
 #define REMOVE_MD_STAGE_1                 1 //Remove MD Stage 1 
 #if REMOVE_MD_STAGE_1                     
-#define IF_CHROMA_LAST_STAGE_ONLY         0
+#define IF_CHROMA_LAST_STAGE_ONLY         1
 #define MIN_COUNT_4_MD_STAGE_3            0
-#define MIN_COUNT_6_MD_STAGE_3            1
-#define IF_TEST                           1
+#define MIN_COUNT_6_MD_STAGE_3            0
+#define IF_TEST                           0
 #define BYPASS_MD_STAGE_2                 0
 #endif
 
