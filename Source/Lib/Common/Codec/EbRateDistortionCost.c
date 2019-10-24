@@ -1280,53 +1280,52 @@ int svt_is_interintra_allowed(
 
 #if ADD_MDC_FULL_COST
 uint64_t mdc_av1_inter_fast_cost(
-    CodingUnit             *cu_ptr,
-    ModeDecisionCandidate  *candidate_ptr,
-    uint32_t                 qp,
-    uint64_t                 luma_distortion,
-    uint64_t                 lambda,
-    EbBool                   use_ssd,
-    PictureControlSet       *picture_control_set_ptr,
-    CandidateMv             *ref_mv_stack,
-    const BlockGeom         *blk_geom)
+    CodingUnit                  *cu_ptr,
+    ModeDecisionCandidate       *candidate_ptr,
+    uint64_t                    luma_distortion,
+    uint64_t                    lambda,
+    EbBool                      use_ssd,
+    PictureControlSet           *picture_control_set_ptr,
+    CandidateMv                 *ref_mv_stack,
+    const BlockGeom             *blk_geom)
 
 {
     // Luma rate
-    uint32_t           lumaRate = 0;
-    uint32_t           chromaRate = 0;
-    uint64_t           mvRate = 0;
-    uint64_t           skipModeRate;
+    uint32_t           luma_rate = 0;
+    uint32_t           chroma_rate = 0;
+    uint64_t           mv_rate = 0;
+    uint64_t           skip_mode_rate;
     // Luma and chroma distortion
-    uint64_t           lumaSad;
-    uint64_t           totalDistortion;
+    uint64_t           luma_sad;
+    uint64_t           total_distortion;
 
     uint32_t           rate;
 
-    int16_t           predRefX;
-    int16_t           predRefY;
-    int16_t           mvRefX;
-    int16_t           mvRefY;
+    int16_t           pred_ref_x;
+    int16_t           pred_ref_y;
+    int16_t           mv_ref_x;
+    int16_t           mv_ref_y;
 
-    EbReflist       refListIdx;
+    EbReflist       ref_list_idx;
 
     candidate_ptr->fast_luma_rate = 0;
 
     PredictionMode inter_mode = (PredictionMode)candidate_ptr->pred_mode;
 
-    uint64_t interModeBitsNum = 0;
+    uint64_t inter_mode_bits_num = 0;
 
-    uint8_t skipModeCtx = 0;// cu_ptr->skip_flag_context;
+    uint8_t skip_mode_ctx = 0;// cu_ptr->skip_flag_context;
     MvReferenceFrame rf[2];
     av1_set_ref_frame(rf, candidate_ptr->ref_frame_type);
     const int8_t ref_frame = av1_ref_frame_type(rf);
     cu_ptr->inter_mode_ctx[ref_frame] = 0;
-    uint32_t modeCtx = Av1ModeContextAnalyzer(cu_ptr->inter_mode_ctx, rf);
-    skipModeRate = candidate_ptr->md_rate_estimation_ptr->skip_mode_fac_bits[skipModeCtx][0];
-    uint64_t referencePictureBitsNum = 0;
+    uint32_t mode_ctx = Av1ModeContextAnalyzer(cu_ptr->inter_mode_ctx, rf);
+    skip_mode_rate = candidate_ptr->md_rate_estimation_ptr->skip_mode_fac_bits[skip_mode_ctx][0];
+    uint64_t reference_picture_bits_num = 0;
 
     //Reference Type and Mode Bit estimation
 
-    referencePictureBitsNum = EstimateRefFramesNumBits(
+    reference_picture_bits_num = EstimateRefFramesNumBits(
         picture_control_set_ptr,
         candidate_ptr,
         cu_ptr,
@@ -1337,22 +1336,22 @@ uint64_t mdc_av1_inter_fast_cost(
         candidate_ptr->is_compound);
 
     if (candidate_ptr->is_compound)
-        interModeBitsNum += candidate_ptr->md_rate_estimation_ptr->inter_compound_mode_fac_bits[modeCtx][INTER_COMPOUND_OFFSET(inter_mode)];
+        inter_mode_bits_num += candidate_ptr->md_rate_estimation_ptr->inter_compound_mode_fac_bits[mode_ctx][INTER_COMPOUND_OFFSET(inter_mode)];
     else {
-        //uint32_t newmv_ctx = modeCtx & NEWMV_CTX_MASK;
-        //interModeBitsNum = candidate_buffer_ptr->candidate_ptr->md_rate_estimation_ptr->new_mv_mode_fac_bits[mode_ctx][0];
+        //uint32_t newmv_ctx = mode_ctx & NEWMV_CTX_MASK;
+        //inter_mode_bits_num = candidate_buffer_ptr->candidate_ptr->md_rate_estimation_ptr->new_mv_mode_fac_bits[mode_ctx][0];
 
-        int16_t newmv_ctx = modeCtx & NEWMV_CTX_MASK;
+        int16_t newmv_ctx = mode_ctx & NEWMV_CTX_MASK;
         //aom_write_symbol(ec_writer, mode != NEWMV, frameContext->newmv_cdf[newmv_ctx], 2);
-        interModeBitsNum += candidate_ptr->md_rate_estimation_ptr->new_mv_mode_fac_bits[newmv_ctx][inter_mode != NEWMV];
+        inter_mode_bits_num += candidate_ptr->md_rate_estimation_ptr->new_mv_mode_fac_bits[newmv_ctx][inter_mode != NEWMV];
         if (inter_mode != NEWMV) {
-            const int16_t zeromvCtx = (modeCtx >> GLOBALMV_OFFSET) & GLOBALMV_CTX_MASK;
+            const int16_t zeromvCtx = (mode_ctx >> GLOBALMV_OFFSET) & GLOBALMV_CTX_MASK;
             //aom_write_symbol(ec_writer, mode != GLOBALMV, frameContext->zeromv_cdf[zeromvCtx], 2);
-            interModeBitsNum += candidate_ptr->md_rate_estimation_ptr->zero_mv_mode_fac_bits[zeromvCtx][inter_mode != GLOBALMV];
+            inter_mode_bits_num += candidate_ptr->md_rate_estimation_ptr->zero_mv_mode_fac_bits[zeromvCtx][inter_mode != GLOBALMV];
             if (inter_mode != GLOBALMV) {
-                int16_t refmvCtx = (modeCtx >> REFMV_OFFSET) & REFMV_CTX_MASK;
+                int16_t refmvCtx = (mode_ctx >> REFMV_OFFSET) & REFMV_CTX_MASK;
                 /*aom_write_symbol(ec_writer, mode != NEARESTMV, frameContext->refmv_cdf[refmv_ctx], 2);*/
-                interModeBitsNum += candidate_ptr->md_rate_estimation_ptr->ref_mv_mode_fac_bits[refmvCtx][inter_mode != NEARESTMV];
+                inter_mode_bits_num += candidate_ptr->md_rate_estimation_ptr->ref_mv_mode_fac_bits[refmvCtx][inter_mode != NEARESTMV];
             }
         }
     }
@@ -1365,7 +1364,7 @@ uint64_t mdc_av1_inter_fast_cost(
                 if (cu_ptr->av1xd->ref_mv_count[candidate_ptr->ref_frame_type] > idx + 1) {
                     uint8_t drl1Ctx =
                         av1_drl_ctx(ref_mv_stack, idx);
-                    interModeBitsNum += candidate_ptr->md_rate_estimation_ptr->drl_mode_fac_bits[drl1Ctx][candidate_ptr->drl_index != idx];
+                    inter_mode_bits_num += candidate_ptr->md_rate_estimation_ptr->drl_mode_fac_bits[drl1Ctx][candidate_ptr->drl_index != idx];
                     if (candidate_ptr->drl_index == idx) break;
                 }
             }
@@ -1378,7 +1377,7 @@ uint64_t mdc_av1_inter_fast_cost(
                 if (cu_ptr->av1xd->ref_mv_count[candidate_ptr->ref_frame_type] > idx + 1) {
                     uint8_t drl_ctx =
                         av1_drl_ctx(ref_mv_stack, idx);
-                    interModeBitsNum += candidate_ptr->md_rate_estimation_ptr->drl_mode_fac_bits[drl_ctx][candidate_ptr->drl_index != (idx - 1)];
+                    inter_mode_bits_num += candidate_ptr->md_rate_estimation_ptr->drl_mode_fac_bits[drl_ctx][candidate_ptr->drl_index != (idx - 1)];
 
                     if (candidate_ptr->drl_index == (idx - 1)) break;
                 }
@@ -1388,24 +1387,24 @@ uint64_t mdc_av1_inter_fast_cost(
 
     if (have_newmv_in_inter_mode(inter_mode)) {
         if (candidate_ptr->is_compound) {
-            mvRate = 0;
+            mv_rate = 0;
 
             if (inter_mode == NEW_NEWMV) {
-                for (refListIdx = 0; refListIdx < 2; ++refListIdx) {
-                    predRefX = candidate_ptr->motion_vector_pred_x[refListIdx];
-                    predRefY = candidate_ptr->motion_vector_pred_y[refListIdx];
-                    mvRefX = refListIdx == REF_LIST_1 ? candidate_ptr->motion_vector_xl1 : candidate_ptr->motion_vector_xl0;
-                    mvRefY = refListIdx == REF_LIST_1 ? candidate_ptr->motion_vector_yl1 : candidate_ptr->motion_vector_yl0;
+                for (ref_list_idx = 0; ref_list_idx < 2; ++ref_list_idx) {
+                    pred_ref_x = candidate_ptr->motion_vector_pred_x[ref_list_idx];
+                    pred_ref_y = candidate_ptr->motion_vector_pred_y[ref_list_idx];
+                    mv_ref_x = ref_list_idx == REF_LIST_1 ? candidate_ptr->motion_vector_xl1 : candidate_ptr->motion_vector_xl0;
+                    mv_ref_y = ref_list_idx == REF_LIST_1 ? candidate_ptr->motion_vector_yl1 : candidate_ptr->motion_vector_yl0;
 
                     MV mv;
-                    mv.row = mvRefY;
-                    mv.col = mvRefX;
+                    mv.row = mv_ref_y;
+                    mv.col = mv_ref_x;
 
                     MV ref_mv;
-                    ref_mv.row = predRefY;
-                    ref_mv.col = predRefX;
+                    ref_mv.row = pred_ref_y;
+                    ref_mv.col = pred_ref_x;
 
-                    mvRate += eb_av1_mv_bit_cost(
+                    mv_rate += eb_av1_mv_bit_cost(
                         &mv,
                         &ref_mv,
                         candidate_ptr->md_rate_estimation_ptr->nmv_vec_cost,
@@ -1414,20 +1413,20 @@ uint64_t mdc_av1_inter_fast_cost(
                 }
             }
             else if (inter_mode == NEAREST_NEWMV || inter_mode == NEAR_NEWMV) {
-                predRefX = candidate_ptr->motion_vector_pred_x[REF_LIST_1];
-                predRefY = candidate_ptr->motion_vector_pred_y[REF_LIST_1];
-                mvRefX = candidate_ptr->motion_vector_xl1;
-                mvRefY = candidate_ptr->motion_vector_yl1;
+                pred_ref_x = candidate_ptr->motion_vector_pred_x[REF_LIST_1];
+                pred_ref_y = candidate_ptr->motion_vector_pred_y[REF_LIST_1];
+                mv_ref_x = candidate_ptr->motion_vector_xl1;
+                mv_ref_y = candidate_ptr->motion_vector_yl1;
 
                 MV mv;
-                mv.row = mvRefY;
-                mv.col = mvRefX;
+                mv.row = mv_ref_y;
+                mv.col = mv_ref_x;
 
                 MV ref_mv;
-                ref_mv.row = predRefY;
-                ref_mv.col = predRefX;
+                ref_mv.row = pred_ref_y;
+                ref_mv.col = pred_ref_x;
 
-                mvRate += eb_av1_mv_bit_cost(
+                mv_rate += eb_av1_mv_bit_cost(
                     &mv,
                     &ref_mv,
                     candidate_ptr->md_rate_estimation_ptr->nmv_vec_cost,
@@ -1437,20 +1436,20 @@ uint64_t mdc_av1_inter_fast_cost(
             else {
                 assert(inter_mode == NEW_NEARESTMV || inter_mode == NEW_NEARMV);
 
-                predRefX = candidate_ptr->motion_vector_pred_x[REF_LIST_0];
-                predRefY = candidate_ptr->motion_vector_pred_y[REF_LIST_0];
-                mvRefX = candidate_ptr->motion_vector_xl0;
-                mvRefY = candidate_ptr->motion_vector_yl0;
+                pred_ref_x = candidate_ptr->motion_vector_pred_x[REF_LIST_0];
+                pred_ref_y = candidate_ptr->motion_vector_pred_y[REF_LIST_0];
+                mv_ref_x = candidate_ptr->motion_vector_xl0;
+                mv_ref_y = candidate_ptr->motion_vector_yl0;
 
                 MV mv;
-                mv.row = mvRefY;
-                mv.col = mvRefX;
+                mv.row = mv_ref_y;
+                mv.col = mv_ref_x;
 
                 MV ref_mv;
-                ref_mv.row = predRefY;
-                ref_mv.col = predRefX;
+                ref_mv.row = pred_ref_y;
+                ref_mv.col = pred_ref_x;
 
-                mvRate += eb_av1_mv_bit_cost(
+                mv_rate += eb_av1_mv_bit_cost(
                     &mv,
                     &ref_mv,
                     candidate_ptr->md_rate_estimation_ptr->nmv_vec_cost,
@@ -1459,23 +1458,23 @@ uint64_t mdc_av1_inter_fast_cost(
             }
         }
         else {
-            refListIdx = candidate_ptr->prediction_direction[0] == 0 ? 0 : 1;
+            ref_list_idx = candidate_ptr->prediction_direction[0] == 0 ? 0 : 1;
 
-            predRefX = candidate_ptr->motion_vector_pred_x[refListIdx];
-            predRefY = candidate_ptr->motion_vector_pred_y[refListIdx];
+            pred_ref_x = candidate_ptr->motion_vector_pred_x[ref_list_idx];
+            pred_ref_y = candidate_ptr->motion_vector_pred_y[ref_list_idx];
 
-            mvRefX = refListIdx == 0 ? candidate_ptr->motion_vector_xl0 : candidate_ptr->motion_vector_xl1;
-            mvRefY = refListIdx == 0 ? candidate_ptr->motion_vector_yl0 : candidate_ptr->motion_vector_yl1;
+            mv_ref_x = ref_list_idx == 0 ? candidate_ptr->motion_vector_xl0 : candidate_ptr->motion_vector_xl1;
+            mv_ref_y = ref_list_idx == 0 ? candidate_ptr->motion_vector_yl0 : candidate_ptr->motion_vector_yl1;
 
             MV mv;
-            mv.row = mvRefY;
-            mv.col = mvRefX;
+            mv.row = mv_ref_y;
+            mv.col = mv_ref_x;
 
             MV ref_mv;
-            ref_mv.row = predRefY;
-            ref_mv.col = predRefX;
+            ref_mv.row = pred_ref_y;
+            ref_mv.col = pred_ref_x;
 
-            mvRate = eb_av1_mv_bit_cost(
+            mv_rate = eb_av1_mv_bit_cost(
                 &mv,
                 &ref_mv,
                 candidate_ptr->md_rate_estimation_ptr->nmv_vec_cost,
@@ -1503,18 +1502,18 @@ uint64_t mdc_av1_inter_fast_cost(
         case SIMPLE_TRANSLATION: break;
         case OBMC_CAUSAL:
             assert(motion_mode_rd == SIMPLE_TRANSLATION); // TODO: remove when OBMC added
-            interModeBitsNum += candidate_ptr->md_rate_estimation_ptr->motion_mode_fac_bits1[bsize][motion_mode_rd];
+            inter_mode_bits_num += candidate_ptr->md_rate_estimation_ptr->motion_mode_fac_bits1[bsize][motion_mode_rd];
             break;
         default:
-            interModeBitsNum += candidate_ptr->md_rate_estimation_ptr->motion_mode_fac_bits[bsize][motion_mode_rd];
+            inter_mode_bits_num += candidate_ptr->md_rate_estimation_ptr->motion_mode_fac_bits[bsize][motion_mode_rd];
         }
     }
 
-    uint32_t isInterRate = candidate_ptr->md_rate_estimation_ptr->intra_inter_fac_bits[cu_ptr->is_inter_ctx][1];
-    lumaRate = (uint32_t)(referencePictureBitsNum + skipModeRate + interModeBitsNum + mvRate + isInterRate);
+    uint32_t is_inter_rate = candidate_ptr->md_rate_estimation_ptr->intra_inter_fac_bits[cu_ptr->is_inter_ctx][1];
+    luma_rate = (uint32_t)(reference_picture_bits_num + skip_mode_rate + inter_mode_bits_num + mv_rate + is_inter_rate);
     // Keep the Fast Luma and Chroma rate for future use
-    candidate_ptr->fast_luma_rate = lumaRate;
-    candidate_ptr->fast_chroma_rate = chromaRate;
+    candidate_ptr->fast_luma_rate = luma_rate;
+    candidate_ptr->fast_chroma_rate = chroma_rate;
 
     if (use_ssd) {
         int32_t current_q_index = MAX(0, MIN(QINDEX_RANGE - 1, picture_control_set_ptr->parent_pcs_ptr->base_qindex));
@@ -1527,36 +1526,36 @@ uint64_t mdc_av1_inter_fast_cost(
             quantizer,
             luma_distortion,
             &rate,
-            &lumaSad);
-        lumaRate += rate;
-        totalDistortion = lumaSad;
-        rate = lumaRate;
+            &luma_sad);
+        luma_rate += rate;
+        total_distortion = luma_sad;
+        rate = luma_rate;
 
         if (candidate_ptr->merge_flag) {
-            uint64_t skipModeRate = candidate_ptr->md_rate_estimation_ptr->skip_mode_fac_bits[skipModeCtx][1];
-            if (skipModeRate < rate) {
-                candidate_ptr->fast_luma_rate = skipModeRate;
-                return(RDCOST(lambda, skipModeRate, totalDistortion));
+            uint64_t skip_mode_rate = candidate_ptr->md_rate_estimation_ptr->skip_mode_fac_bits[skip_mode_ctx][1];
+            if (skip_mode_rate < rate) {
+                candidate_ptr->fast_luma_rate = skip_mode_rate;
+                return(RDCOST(lambda, skip_mode_rate, total_distortion));
             }
         }
         candidate_ptr->fast_luma_rate = rate;
-        return(RDCOST(lambda, rate, totalDistortion));
+        return(RDCOST(lambda, rate, total_distortion));
     }
     else {
-        lumaSad = (LUMA_WEIGHT * luma_distortion) << AV1_COST_PRECISION;
-        totalDistortion = lumaSad;
-        rate = lumaRate;
+        luma_sad = (LUMA_WEIGHT * luma_distortion) << AV1_COST_PRECISION;
+        total_distortion = luma_sad;
+        rate = luma_rate;
 
         // Assign fast cost
         if (candidate_ptr->merge_flag) {
-            uint64_t skipModeRate = candidate_ptr->md_rate_estimation_ptr->skip_mode_fac_bits[skipModeCtx][1];
-            if (skipModeRate < rate) {
-                candidate_ptr->fast_luma_rate = skipModeRate;
-                return(RDCOST(lambda, skipModeRate, totalDistortion));
+            uint64_t skip_mode_rate = candidate_ptr->md_rate_estimation_ptr->skip_mode_fac_bits[skip_mode_ctx][1];
+            if (skip_mode_rate < rate) {
+                candidate_ptr->fast_luma_rate = skip_mode_rate;
+                return(RDCOST(lambda, skip_mode_rate, total_distortion));
             }
         }
         candidate_ptr->fast_luma_rate = rate;
-        return(RDCOST(lambda, rate, totalDistortion));
+        return(RDCOST(lambda, rate, total_distortion));
     }
 }
 #endif
@@ -1944,6 +1943,7 @@ uint64_t av1_inter_fast_cost(
         return(RDCOST(lambda, rate, totalDistortion));
     }
 }
+
 
 EbErrorType av1_tu_estimate_coeff_bits(
     struct ModeDecisionContext         *md_context,

@@ -603,7 +603,6 @@ void MdcInterDepthDecision(
 /// compute the cost of curr depth, and the depth above
 void   mdc_compute_depth_costs(
     ModeDecisionConfigurationContext    *context_ptr,
-    SequenceControlSet                  *sequence_control_set_ptr,
     uint32_t                             curr_depth_mds,
     uint32_t                             above_depth_mds,
     uint32_t                             step,
@@ -612,7 +611,6 @@ void   mdc_compute_depth_costs(
 {
     uint64_t       above_non_split_rate = 0;
     uint64_t       above_split_rate = 0;
-    UNUSED(sequence_control_set_ptr);
 
     // Rate of not spliting the current depth (Depth != 4) in case the children were omitted by MDC
     uint64_t       curr_non_split_rate_blk0 = 0;
@@ -659,7 +657,7 @@ uint32_t mdc_d2_inter_depth_block_decision(
             if (picture_control_set_ptr->slice_type == I_SLICE && parent_depth_idx_mds == 0 && sequence_control_set_ptr->seq_header.sb_size == BLOCK_128X128)
                 parent_depth_cost = MAX_MODE_COST;
             else
-                mdc_compute_depth_costs(context_ptr, sequence_control_set_ptr, current_depth_idx_mds, parent_depth_idx_mds, ns_depth_offset[sequence_control_set_ptr->seq_header.sb_size == BLOCK_128X128][blk_geom->depth], &parent_depth_cost, &current_depth_cost);
+                mdc_compute_depth_costs(context_ptr, current_depth_idx_mds, parent_depth_idx_mds, ns_depth_offset[sequence_control_set_ptr->seq_header.sb_size == BLOCK_128X128][blk_geom->depth], &parent_depth_cost, &current_depth_cost);
             if (!sequence_control_set_ptr->sb_geom[sb_index].block_is_allowed[parent_depth_idx_mds])
                 parent_depth_cost = MAX_MODE_COST;
             if (parent_depth_cost <= current_depth_cost) {
@@ -668,9 +666,8 @@ uint32_t mdc_d2_inter_depth_block_decision(
                 results_ptr[parent_depth_idx_mds].early_split_flag = context_ptr->local_cu_array[parent_depth_idx_mds].early_split_flag;
                 last_cu_index = parent_depth_idx_mds;
             }
-            else {
+            else 
                 context_ptr->local_cu_array[parent_depth_idx_mds].early_cost = current_depth_cost;
-            }
 
             //setup next parent inter depth
             blk_geom = get_blk_geom_mds(parent_depth_idx_mds);
@@ -681,21 +678,14 @@ uint32_t mdc_d2_inter_depth_block_decision(
     return last_cu_index;
 }
 
-uint64_t  mdc_d1_non_square_block_decision(
-    SequenceControlSet                       *sequence_control_set_ptr,
-    ModeDecisionConfigurationContext         *context_ptr
-)
-{
-    UNUSED(sequence_control_set_ptr);
+uint64_t  mdc_d1_non_square_block_decision(ModeDecisionConfigurationContext *context_ptr){
     //compute total cost for the whole block partition
     uint64_t tot_cost = 0;
     uint32_t first_blk_idx = context_ptr->mds_idx - (context_ptr->blk_geom->totns - 1);//index of first block in this partition
     uint32_t blk_it;
 
     for (blk_it = 0; blk_it < context_ptr->blk_geom->totns; blk_it++)
-    {
         tot_cost += context_ptr->local_cu_array[first_blk_idx + blk_it].early_cost;
-    }
 
     if (context_ptr->blk_geom->shape == PART_N || tot_cost < context_ptr->local_cu_array[context_ptr->blk_geom->sqi_mds].early_cost)
     {
@@ -842,7 +832,6 @@ int32_t mdc_av1_quantize_inv_quantize(
 }
 
 EbErrorType mdc_av1_tu_estimate_coeff_bits(
-    struct ModeDecisionConfigurationContext *context,
     uint8_t                                  allow_update_cdf,
     FRAME_CONTEXT                           *ec_ctx,
     PictureControlSet                       *picture_control_set_ptr,
@@ -853,7 +842,8 @@ EbErrorType mdc_av1_tu_estimate_coeff_bits(
     uint64_t                                *y_tu_coeff_bits,
     TxSize                                   txsize,
     TxType                                   tx_type,
-    COMPONENT_TYPE                           component_type) {
+    COMPONENT_TYPE                           component_type)
+{
     EbErrorType return_error = EB_ErrorNone;
     int32_t *coeff_buffer;
     int16_t  luma_txb_skip_context = 0;
@@ -1045,7 +1035,6 @@ void mdc_full_loop(
         }
         //LUMA-ONLY
         mdc_av1_tu_estimate_coeff_bits(
-            context_ptr,
             0,//allow_update_cdf,
             NULL,//FRAME_CONTEXT *ec_ctx,
             picture_control_set_ptr,
@@ -1075,8 +1064,9 @@ void mdc_full_loop(
         txb_1d_offset += context_ptr->blk_geom->tx_width[tx_depth][txb_itr] * context_ptr->blk_geom->tx_height[tx_depth][txb_itr];
     }
 }
-void av1_set_ref_frame(MvReferenceFrame *rf,
-    int8_t ref_frame_type);
+
+void av1_set_ref_frame(MvReferenceFrame *rf, int8_t ref_frame_type);
+
 EbErrorType mdc_inter_pu_prediction_av1(
     ModeDecisionConfigurationContext     *context_ptr,
     PictureControlSet                    *picture_control_set_ptr,
@@ -1189,12 +1179,11 @@ uint64_t mdc_av1_full_cost(
     return full_cost;
 }
 #endif
-EbErrorType nsq_prediction_shape(
+EB_EXTERN EbErrorType nsq_prediction_shape(
     SequenceControlSet                *sequence_control_set_ptr,
     PictureControlSet                 *picture_control_set_ptr,
     ModeDecisionConfigurationContext  *context_ptr,
     MdcLcuData                        *mdcResultTbPtr,
-    LargestCodingUnit                 *sb_ptr,
     uint32_t                           sb_originx,
     uint32_t                           sb_originy,
     uint32_t                           sb_index) {
@@ -1449,7 +1438,7 @@ EbErrorType nsq_prediction_shape(
                 context_ptr->candidate_buffer->candidate_ptr->is_compound = 1;
             }
             else {
-                printf("mdc invalid pred_direction");
+                SVT_LOG("mdc invalid pred_direction");
             }
             context_ptr->candidate_buffer->candidate_ptr->motion_vector_pred_x[REF_LIST_0] = 0;
             context_ptr->candidate_buffer->candidate_ptr->motion_vector_pred_y[REF_LIST_0] = 0;
@@ -1525,7 +1514,6 @@ EbErrorType nsq_prediction_shape(
             mdc_av1_inter_fast_cost(
                 context_ptr->mdc_cu_ptr,
                 context_ptr->candidate_buffer->candidate_ptr,
-                context_ptr->qp,
                 blk_geom->sq_size == 128 ? me_128x128 : me_block_results[me_index].distortion,
                 context_ptr->lambda,
                 0,
@@ -1541,7 +1529,7 @@ EbErrorType nsq_prediction_shape(
 #endif
         }
         if (blk_geom->nsi + 1 == blk_geom->totns)
-            nsq_cost[context_ptr->blk_geom->shape] = mdc_d1_non_square_block_decision(sequence_control_set_ptr, context_ptr);
+            nsq_cost[context_ptr->blk_geom->shape] = mdc_d1_non_square_block_decision(context_ptr);
         d1_blocks_accumlated = blk_geom->shape == PART_N ? 1 : d1_blocks_accumlated + 1;
         if (d1_blocks_accumlated == leaf_data_ptr->tot_d1_blocks) {
             end_idx = cuIdx + 1;
@@ -1559,7 +1547,6 @@ EbErrorType nsq_prediction_shape(
             // Assign ranking # to each block
             for (leaf_idx = start_idx; leaf_idx < end_idx; leaf_idx++) {
                 EbMdcLeafData * current_depth_leaf_data = &mdcResultTbPtr->leaf_data_array[leaf_idx];
-                const BlockGeom * bepth_blk_geom = get_blk_geom_mds(leaf_data_array[leaf_idx].mds_idx);
 #if COMBINE_MDC_NSQ_TABLE
                 current_depth_leaf_data->ol_best_nsq_shape1 = nsq_shape_table[0];
                 current_depth_leaf_data->ol_best_nsq_shape2 = nsq_shape_table[1];

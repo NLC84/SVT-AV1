@@ -193,10 +193,9 @@ extern "C" {
         uint32_t                 top_neighbor_mode);
 
 #if ADD_MDC_FULL_COST
-    extern uint64_t mdc_av1_inter_fast_cost(
+    uint64_t mdc_av1_inter_fast_cost(
         CodingUnit             *cu_ptr,
         ModeDecisionCandidate  *candidate_ptr,
-        uint32_t                 qp,
         uint64_t                 luma_distortion,
         uint64_t                 lambda,
         EbBool                   use_ssd,
@@ -234,7 +233,7 @@ extern "C" {
         BlockSize                                bsize);
 
 #if ADD_MDC_FULL_COST
-    extern int32_t av1_cost_skip_txb(
+    int32_t av1_cost_skip_txb(
         uint8_t                                 allow_update_cdf,
         FRAME_CONTEXT                           *ec_ctx,
         struct ModeDecisionCandidateBuffer    *candidate_buffer_ptr,

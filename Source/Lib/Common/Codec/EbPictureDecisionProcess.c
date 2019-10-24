@@ -819,30 +819,15 @@ EbErrorType signal_derivation_multi_processes_oq(
                     picture_control_set_ptr->pic_depth_mode = PIC_SQ_NON4_DEPTH_MODE;
             else
                 picture_control_set_ptr->pic_depth_mode = PIC_SQ_NON4_DEPTH_MODE;
-#if PREDICT_NSQ_SHAPE
-        else if (picture_control_set_ptr->enc_mode <= ENC_M1)
-                picture_control_set_ptr->pic_depth_mode = PIC_ALL_DEPTH_MODE;
-#else
+
         else if (picture_control_set_ptr->enc_mode <= ENC_M2)
             picture_control_set_ptr->pic_depth_mode = PIC_ALL_DEPTH_MODE;
-#endif
-#if PREDICT_NSQ_SHAPE
-        else if (picture_control_set_ptr->enc_mode <= ENC_M2)
-                if (picture_control_set_ptr->slice_type == I_SLICE)
-                    picture_control_set_ptr->pic_depth_mode = PIC_ALL_DEPTH_MODE;
-                else
-                    picture_control_set_ptr->pic_depth_mode = PIC_ALL_C_DEPTH_MODE;
-#else
+
         else if (picture_control_set_ptr->enc_mode <= ENC_M3)
             if (picture_control_set_ptr->slice_type == I_SLICE)
                 picture_control_set_ptr->pic_depth_mode = PIC_ALL_C_DEPTH_MODE;
             else
                 picture_control_set_ptr->pic_depth_mode = PIC_SQ_NON4_DEPTH_MODE;
-#endif
-#if PREDICT_NSQ_SHAPE
-        else if (picture_control_set_ptr->enc_mode <= ENC_M3)
-            picture_control_set_ptr->pic_depth_mode = PIC_SQ_DEPTH_MODE;
-#endif
 
         else if (picture_control_set_ptr->enc_mode <= ENC_M5)
             picture_control_set_ptr->pic_depth_mode = PIC_SQ_NON4_DEPTH_MODE;
@@ -873,10 +858,6 @@ EbErrorType signal_derivation_multi_processes_oq(
         picture_control_set_ptr->mdc_depth_level = MAX_MDC_LEVEL;
     else if (picture_control_set_ptr->enc_mode == ENC_M0)
         picture_control_set_ptr->mdc_depth_level = (sequence_control_set_ptr->input_resolution == INPUT_SIZE_576p_RANGE_OR_LOWER) ? MAX_MDC_LEVEL : 6;
-
-    else if (picture_control_set_ptr->enc_mode <= ENC_M2)
-        picture_control_set_ptr->mdc_depth_level = 5;
-
     else
         picture_control_set_ptr->mdc_depth_level = MAX_MDC_LEVEL; // Not tuned yet.
 #endif
@@ -923,11 +904,7 @@ EbErrorType signal_derivation_multi_processes_oq(
             if (picture_control_set_ptr->is_used_as_reference_flag)
                 picture_control_set_ptr->nsq_search_level = NSQ_SEARCH_LEVEL5;
             else
-#if PREDICT_NSQ_SHAPE
-                picture_control_set_ptr->nsq_search_level = NSQ_SEARCH_LEVEL2;
-#else
 				picture_control_set_ptr->nsq_search_level = NSQ_SEARCH_LEVEL3;
-#endif
         else
             picture_control_set_ptr->nsq_search_level = NSQ_SEARCH_OFF;
 

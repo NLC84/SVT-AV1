@@ -280,7 +280,6 @@ EbErrorType nsq_prediction_shape(
     PictureControlSet                 *picture_control_set_ptr,
     ModeDecisionConfigurationContext  *context_ptr,
     MdcLcuData                        *mdcResultTbPtr,
-    LargestCodingUnit                 *sb_ptr,
     uint32_t                           sb_originx,
     uint32_t                           sb_originy,
     uint32_t                           sb_index);
@@ -1208,7 +1207,6 @@ void init_considered_block(
                     // Set predicted block to be considered
                     if (context_ptr->local_cu_array[blk_index].early_split_flag == EB_FALSE) {
                         for (block_1d_idx = 0; block_1d_idx < tot_d1_blocks; block_1d_idx++) {
-                            const BlockGeom * blk_geom_1d = get_blk_geom_mds(blk_index + block_1d_idx);
                             // NADER - FORCE SHAPE
                             resultsPtr->leaf_data_array[blk_index + block_1d_idx].consider_block = 1;
                             resultsPtr->leaf_data_array[blk_index + block_1d_idx].refined_split_flag = EB_FALSE;
@@ -1332,14 +1330,12 @@ void init_considered_block(
                             if (parent_blk_geom->sq_size < (sequence_control_set_ptr->seq_header.sb_size == BLOCK_128X128 ? 128 : 64) && parent_blk_geom->sq_size > 4) {
                                 //Set parent to be considered
                                 sparent_depth_idx_mds = (parent_blk_geom->sqi_mds - (parent_blk_geom->quadi - 3) * ns_depth_offset[sequence_control_set_ptr->seq_header.sb_size == BLOCK_128X128][parent_blk_geom->depth]) - parent_depth_offset[sequence_control_set_ptr->seq_header.sb_size == BLOCK_128X128][parent_blk_geom->depth];
-                                const BlockGeom * sparent_blk_geom = get_blk_geom_mds(sparent_depth_idx_mds);
                                 uint32_t sparent_tot_d1_blocks =
                                     parent_blk_geom->sq_size == 128 ? 17 :
                                     parent_blk_geom->sq_size > 8 ? 25 :
                                     parent_blk_geom->sq_size == 8 ? 5 : 1;
-                                for (block_1d_idx = 0; block_1d_idx < sparent_tot_d1_blocks; block_1d_idx++) {
+                                for (block_1d_idx = 0; block_1d_idx < sparent_tot_d1_blocks; block_1d_idx++)
                                     resultsPtr->leaf_data_array[sparent_depth_idx_mds + block_1d_idx].consider_block = 1;
-                                }
                             }
                         }
                         for (block_1d_idx = 0; block_1d_idx < tot_d1_blocks; block_1d_idx++) {
@@ -1468,12 +1464,11 @@ void init_considered_block(
 void forward_considered_blocks(
     SequenceControlSet *sequence_control_set_ptr,
     PictureControlSet  *picture_control_set_ptr,
-    ModeDecisionConfigurationContext *context_ptr,
     uint32_t            sb_index) {
     MdcLcuData *resultsPtr = &picture_control_set_ptr->mdc_sb_array[sb_index];
     resultsPtr->leaf_count = 0;
     uint32_t  blk_index = 0;
-    uint32_t d1_blocks_accumlated, tot_d1_blocks, d1_block_idx;
+    uint32_t d1_blocks_accumlated, tot_d1_blocks = 0, d1_block_idx;
     EbBool split_flag;
     while (blk_index < sequence_control_set_ptr->max_block_cnt) {
         const BlockGeom * blk_geom = get_blk_geom_mds(blk_index);
@@ -1510,12 +1505,12 @@ void open_loop_partitioning_pass(
     PictureControlSet  *picture_control_set_ptr,
     ModeDecisionConfigurationContext *context_ptr,
     uint32_t            sb_index) {
-    EbBool split_flag;
+    //EbBool split_flag;
     MdcLcuData *resultsPtr = &picture_control_set_ptr->mdc_sb_array[sb_index];
     resultsPtr->leaf_count = 0;
     uint32_t  blk_index = 0;
     while (blk_index < sequence_control_set_ptr->max_block_cnt) {
-        split_flag = EB_TRUE;
+        //split_flag = EB_TRUE;
         const BlockGeom * blk_geom = get_blk_geom_mds(blk_index);
         //if the parentSq is inside inject this block
         uint8_t is_blk_allowed = picture_control_set_ptr->slice_type != I_SLICE ? 1 : (blk_geom->sq_size < 128) ? 1 : 0;
@@ -1536,11 +1531,11 @@ void open_loop_partitioning_pass(
             resultsPtr->leaf_data_array[resultsPtr->leaf_count].mds_idx = blk_index;
             if (blk_geom->sq_size > 4) {
                 resultsPtr->leaf_data_array[resultsPtr->leaf_count++].split_flag = EB_TRUE;
-                split_flag = EB_TRUE;
+                //split_flag = EB_TRUE;
             }
             else {
                 resultsPtr->leaf_data_array[resultsPtr->leaf_count++].split_flag = EB_FALSE;
-                split_flag = EB_FALSE;
+                //split_flag = EB_FALSE;
             }
         }
         blk_index++;
@@ -1555,7 +1550,6 @@ void open_loop_partitioning_pass(
             picture_control_set_ptr,
             context_ptr,
             resultsPtr,
-            sb_ptr,
             sb_ptr->origin_x,
             sb_ptr->origin_y,
             sb_index);
@@ -2671,15 +2665,15 @@ void* mode_decision_configuration_kernel(void *input_ptr)
             if (picture_control_set_ptr->parent_pcs_ptr->mdc_depth_level < MAX_MDC_LEVEL) {
                 // SB Constants
                 uint8_t sb_sz = (uint8_t)sequence_control_set_ptr->sb_size_pix;
-                uint8_t lcuSizeLog2 = (uint8_t)Log2f(sb_sz);
-                uint32_t picture_height_in_sb = (sequence_control_set_ptr->seq_header.max_frame_height + sb_sz - 1) >> lcuSizeLog2;
-                uint32_t picture_width_in_sb = (sequence_control_set_ptr->seq_header.max_frame_width + sb_sz - 1) >> lcuSizeLog2;
+                uint8_t lcu_size_log_2 = (uint8_t)Log2f(sb_sz);
+                uint32_t picture_height_in_sb = (sequence_control_set_ptr->seq_header.max_frame_height + sb_sz - 1) >> lcu_size_log_2;
+                uint32_t picture_width_in_sb = (sequence_control_set_ptr->seq_header.max_frame_width + sb_sz - 1) >> lcu_size_log_2;
                 for (uint32_t y_lcu_index = 0; y_lcu_index < picture_height_in_sb; ++y_lcu_index) {
                     for (uint32_t x_lcu_index = 0; x_lcu_index < picture_width_in_sb; ++x_lcu_index) {
                         uint32_t sb_index = (uint16_t)(y_lcu_index * picture_width_in_sb + x_lcu_index);
                         LargestCodingUnit  *sb_ptr = picture_control_set_ptr->sb_ptr_array[sb_index];
-                        sb_ptr->origin_x = x_lcu_index << lcuSizeLog2;
-                        sb_ptr->origin_y = y_lcu_index << lcuSizeLog2;
+                        sb_ptr->origin_x = x_lcu_index << lcu_size_log_2;
+                        sb_ptr->origin_y = y_lcu_index << lcu_size_log_2;
                         open_loop_partitioning_pass(
                             sequence_control_set_ptr,
                             picture_control_set_ptr,
@@ -2693,7 +2687,6 @@ void* mode_decision_configuration_kernel(void *input_ptr)
                         forward_considered_blocks(
                             sequence_control_set_ptr,
                             picture_control_set_ptr,
-                            context_ptr,
                             sb_index);
                     }
                 }
