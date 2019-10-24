@@ -744,7 +744,6 @@ extern void av1_quantize_b_facade_II(
 
 int32_t mdc_av1_quantize_inv_quantize(
     PictureControlSet                *picture_control_set_ptr,
-    ModeDecisionConfigurationContext *md_context,
     int32_t                          *coeff,
     const uint32_t                    coeff_stride,
     int32_t                          *quant_coeff,
@@ -754,19 +753,10 @@ int32_t mdc_av1_quantize_inv_quantize(
     uint32_t                          height,
     TxSize                            txsize,
     uint16_t                         *eob,
-    EbAsm                             asm_type,
     uint32_t                         *count_non_zero_coeffs,
     uint32_t                          component_type,
-    uint32_t                          bit_increment,
-    TxType                            tx_type,
-    int16_t                           txb_skip_context,
-    int16_t                           dc_sign_context)
+    TxType                            tx_type)
 {
-    UNUSED(md_context);
-    UNUSED(asm_type);
-    UNUSED(bit_increment);
-    UNUSED(txb_skip_context);
-    UNUSED(dc_sign_context);
     MacroblockPlane candidate_plane;
     const QmVal *qMatrix = picture_control_set_ptr->parent_pcs_ptr->gqmatrix[NUM_QM_LEVELS - 1][0][txsize];
     const QmVal *iqMatrix = picture_control_set_ptr->parent_pcs_ptr->giqmatrix[NUM_QM_LEVELS - 1][0][txsize];
@@ -845,36 +835,16 @@ EbErrorType mdc_av1_tu_estimate_coeff_bits(
     PictureControlSet                       *picture_control_set_ptr,
     struct ModeDecisionCandidateBuffer      *candidate_buffer_ptr,
     uint32_t                                 tu_origin_index,
-    uint32_t                                 tu_chroma_origin_index,
-    EntropyCoder                            *entropy_coder_ptr,
     EbPictureBufferDesc                     *coeff_buffer_sb,
     uint32_t                                 y_eob,
-    uint32_t                                 cb_eob,
-    uint32_t                                 cr_eob,
     uint64_t                                *y_tu_coeff_bits,
-    uint64_t                                *cb_tu_coeff_bits,
-    uint64_t                                *cr_tu_coeff_bits,
     TxSize                                   txsize,
-    TxSize                                   txsize_uv,
     TxType                                   tx_type,
-    TxType                                   tx_type_uv,
-    COMPONENT_TYPE                           component_type,
-    EbAsm                                    asm_type)
-{
-
-    UNUSED(tu_chroma_origin_index);
-    UNUSED(entropy_coder_ptr);
-    UNUSED(cb_eob);
-    UNUSED(cr_eob);
-    UNUSED(cb_tu_coeff_bits);
-    UNUSED(cr_tu_coeff_bits);
-    UNUSED(txsize_uv);
-    UNUSED(tx_type_uv);
-    UNUSED(asm_type);
+    COMPONENT_TYPE                           component_type) {
     EbErrorType return_error = EB_ErrorNone;
     int32_t *coeff_buffer;
-    int16_t  luma_txb_skip_context = context->luma_txb_skip_context;
-    int16_t  luma_dc_sign_context = context->luma_dc_sign_context;
+    int16_t  luma_txb_skip_context = 0;
+    int16_t  luma_dc_sign_context = 0;
     EbBool reducedTransformSetFlag = picture_control_set_ptr->parent_pcs_ptr->reduced_tx_set_used ? EB_TRUE : EB_FALSE;
     //Estimate the rate of the transform type and coefficient for Luma
     if (component_type == COMPONENT_LUMA || component_type == COMPONENT_ALL) {
@@ -931,9 +901,6 @@ void mdc_full_loop(
         uint16_t tx_org_y = context_ptr->blk_geom->tx_org_y[tx_depth][txb_itr];
         int32_t cropped_tx_width = MIN(context_ptr->blk_geom->tx_width[tx_depth][txb_itr], sequence_control_set_ptr->seq_header.max_frame_width - (context_ptr->sb_origin_x + tx_org_x));
         int32_t cropped_tx_height = MIN(context_ptr->blk_geom->tx_height[tx_depth][txb_itr], sequence_control_set_ptr->seq_header.max_frame_height - (context_ptr->sb_origin_y + tx_org_y));
-        context_ptr->luma_txb_skip_context = 0;
-        context_ptr->luma_dc_sign_context = 0;
-
         tu_origin_index = tx_org_x + (tx_org_y * candidate_buffer->residual_ptr->stride_y);
         y_tu_coeff_bits = 0;
 
@@ -954,7 +921,6 @@ void mdc_full_loop(
 
         candidate_buffer->candidate_ptr->quantized_dc[0][txb_itr] = mdc_av1_quantize_inv_quantize(
             picture_control_set_ptr,
-            context_ptr,
             &(((int32_t*)context_ptr->trans_quant_buffers_ptr->tu_trans_coeff2_nx2_n_ptr->buffer_y)[txb_1d_offset]),
             NOT_USED_VALUE,
             &(((int32_t*)candidate_buffer->residual_quant_coeff_ptr->buffer_y)[txb_1d_offset]),
@@ -964,13 +930,9 @@ void mdc_full_loop(
             context_ptr->blk_geom->tx_height[tx_depth][txb_itr],
             context_ptr->blk_geom->txsize[tx_depth][txb_itr],
             &candidate_buffer->candidate_ptr->eob[0][txb_itr],
-            asm_type,
             &(y_count_non_zero_coeffs[txb_itr]),
             COMPONENT_LUMA,
-            BIT_INCREMENT_8BIT,
-            candidate_buffer->candidate_ptr->transform_type[txb_itr],
-            context_ptr->luma_txb_skip_context,
-            context_ptr->luma_dc_sign_context);
+            candidate_buffer->candidate_ptr->transform_type[txb_itr]);
 
         if (context_ptr->spatial_sse_full_loop) {
             EbPictureBufferDesc          *input_picture_ptr = picture_control_set_ptr->parent_pcs_ptr->enhanced_picture_ptr;
@@ -996,7 +958,7 @@ void mdc_full_loop(
                     0 /*lossless*/);
             }
             else {
-                picture_copy8_bit(
+                picture_copy(
                     candidate_buffer->prediction_ptr,
                     tu_origin_index,
                     0,
@@ -1008,7 +970,9 @@ void mdc_full_loop(
                     0,
                     0,
                     PICTURE_BUFFER_DESC_Y_FLAG,
+                    0,
                     asm_type);
+
             }
 
             tuFullDistortion[0][DIST_CALC_PREDICTION] = spatial_full_distortion(
@@ -1074,24 +1038,15 @@ void mdc_full_loop(
             picture_control_set_ptr,
             candidate_buffer,
             txb_1d_offset,
-            0,
-            context_ptr->coeff_est_entropy_coder_ptr,
             candidate_buffer->residual_quant_coeff_ptr,
             y_count_non_zero_coeffs[txb_itr],
-            0,
-            0,
-            &y_tu_coeff_bits,
-            &y_tu_coeff_bits,
             &y_tu_coeff_bits,
             context_ptr->blk_geom->txsize[tx_depth][txb_itr],
-            context_ptr->blk_geom->txsize_uv[tx_depth][txb_itr],
             candidate_buffer->candidate_ptr->transform_type[txb_itr],
-            candidate_buffer->candidate_ptr->transform_type_uv,
-            COMPONENT_LUMA,
-            asm_type);
+            COMPONENT_LUMA);
 
         av1_tu_calc_cost_luma(
-            context_ptr->luma_txb_skip_context,
+            0,
             candidate_buffer->candidate_ptr,
             txb_itr,
             context_ptr->blk_geom->txsize[tx_depth][0],
@@ -1107,7 +1062,7 @@ void mdc_full_loop(
         txb_1d_offset += context_ptr->blk_geom->tx_width[tx_depth][txb_itr] * context_ptr->blk_geom->tx_height[tx_depth][txb_itr];
     }
 }
-extern void av1_set_ref_frame(MvReferenceFrame *rf,
+void av1_set_ref_frame(MvReferenceFrame *rf,
     int8_t ref_frame_type);
 EbErrorType mdc_inter_pu_prediction_av1(
     ModeDecisionConfigurationContext     *context_ptr,
@@ -1115,7 +1070,6 @@ EbErrorType mdc_inter_pu_prediction_av1(
     ModeDecisionCandidateBuffer          *candidate_buffer_ptr,
     EbAsm                                   asm_type)
 {
-    UNUSED(asm_type);
     EbErrorType           return_error = EB_ErrorNone;
     EbPictureBufferDesc  *ref_pic_list0;
     EbPictureBufferDesc  *ref_pic_list1 = NULL;
@@ -1192,7 +1146,7 @@ EbErrorType mdc_inter_pu_prediction_av1(
 
     return return_error;
 }
-
+int8_t av1_ref_frame_type(const MvReferenceFrame *const rf);
 uint64_t mdc_av1_full_cost(
     ModeDecisionConfigurationContext     *context_ptr,
     uint64_t                             *y_distortion,
@@ -1222,7 +1176,7 @@ uint64_t mdc_av1_full_cost(
     return full_cost;
 }
 #endif
-EB_EXTERN EbErrorType nsq_prediction_shape(
+EbErrorType nsq_prediction_shape(
     SequenceControlSet                *sequence_control_set_ptr,
     PictureControlSet                 *picture_control_set_ptr,
     ModeDecisionConfigurationContext  *context_ptr,
@@ -1498,9 +1452,9 @@ EB_EXTERN EbErrorType nsq_prediction_shape(
             context_ptr->mdc_cu_ptr->compoud_reference_type_context = 0;
             av1_zero(context_ptr->mdc_cu_ptr->av1xd->neighbors_ref_counts);
             uint16_t txb_count = context_ptr->blk_geom->txb_count[0];
-            for (uint16_t txb_itr = 0; txb_itr < txb_count; txb_itr++) {
+            for (uint16_t txb_itr = 0; txb_itr < txb_count; txb_itr++) 
                 context_ptr->candidate_buffer->candidate_ptr->transform_type[txb_itr] = DCT_DCT;
-            }
+            
             mdc_inter_pu_prediction_av1(
                 context_ptr,
                 picture_control_set_ptr,

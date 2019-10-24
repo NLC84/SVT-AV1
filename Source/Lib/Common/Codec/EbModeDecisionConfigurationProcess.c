@@ -275,7 +275,7 @@ static const int16_t ac_qlookup_12_Q3[QINDEX_RANGE] = {
 };
 
 #if PREDICT_NSQ_SHAPE
-EB_EXTERN EbErrorType nsq_prediction_shape(
+EbErrorType nsq_prediction_shape(
     SequenceControlSet                *sequence_control_set_ptr,
     PictureControlSet                 *picture_control_set_ptr,
     ModeDecisionConfigurationContext  *context_ptr,

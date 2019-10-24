@@ -106,8 +106,6 @@ extern "C" {
         uint16_t                             round_origin_y;
         uint8_t                              cu_size_log2;
         uint64_t                             three_quad_energy;
-        int16_t                              luma_txb_skip_context;
-        int16_t                              luma_dc_sign_context;
         // Transform and Quantization Buffers
         EbTransQuantBuffers                  *trans_quant_buffers_ptr;
         // Trasform Scratch Memory
