@@ -1334,8 +1334,25 @@ EbErrorType signal_derivation_enc_dec_kernel_oq(
     // Derive md_staging_mode
     //
 #if REMOVE_MD_STAGE_1
+    // MD_STAGING_MODE_1
+    //  __________________________________________________________________________________________________________________
+    // |        | md_stage_0                  | md_stage_2                     | md_stage_3                              |
+    // |________|_____________________________|________________________________|_________________________________________|
+    // |CLASS_0 |Prediction for Luma & Chroma |T, Q, Q-1, T-1 for Luma         |T, Q, Q-1, T-1 or Luma & Chroma          |
+    // |CLASS_6 |No Interpolation Search      |No RDOQ                         |RDOQ                                     |
+    // |        |Regular Interpolation        |No Tx Search                    |Tx Search                                |
+    // |        |                             |No ATB                          |ATB                                      |
+    // |        |                             |                                |CFL vs. Independent                      |
+    // |________|_____________________________|________________________________|_________________________________________|
+    // |CLASS_1 |Prediction for Chroma        |T, Q, Q-1, T-1 for Luma         |T, Q, Q-1, T-1 for Luma & Chroma         |
+    // |CLASS_2 |No Interpolation Search      |No RDOQ                         |Tx Search                                |
+    // |CLASS_3 |Bilinear Interpolation       |No Tx Search                    |                                         |
+    // |CLASS_4 |                             |Interpolation Search            |                                         |
+    // |CLASS_5 |                             |....................            |                                         |
+    // |________|_____________________________|________________________________|_________________________________________|
+
     if (picture_control_set_ptr->enc_mode <= ENC_M4)
-        context_ptr->md_staging_mode = MD_STAGING_MODE_3;
+        context_ptr->md_staging_mode = MD_STAGING_MODE_1;
     else
         context_ptr->md_staging_mode = MD_STAGING_MODE_0;
 #else

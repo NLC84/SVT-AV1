@@ -79,10 +79,10 @@ extern "C" {
 
 #define REMOVE_MD_STAGE_1                 1 //Remove MD Stage 1 
 #if REMOVE_MD_STAGE_1                     
-#define IF_CHROMA_LAST_STAGE_ONLY         1
+#define IF_CHROMA_LAST_STAGE_ONLY         0
 #define MIN_COUNT_4_MD_STAGE_3            0
-#define MIN_COUNT_6_MD_STAGE_3            0
-#define IF_TEST                           0
+#define MIN_COUNT_6_MD_STAGE_3            1
+#define IF_TEST                           1
 #define BYPASS_MD_STAGE_2                 0
 #endif
 
@@ -523,12 +523,15 @@ typedef enum MD_STAGE {
     MD_STAGE_3,
     MD_STAGE_TOTAL
 } MD_STAGE;
-
+#if REMOVE_MD_STAGE_1
+#define MD_STAGING_MODE_0    0
+#define MD_STAGING_MODE_1    1
+#else
 #define MD_STAGING_MODE_0    0
 #define MD_STAGING_MODE_1    1
 #define MD_STAGING_MODE_2    2
 #define MD_STAGING_MODE_3    3
-
+#endif
 #define INTRA_NFL           16
 #define INTER_NEW_NFL       16
 #define INTER_PRED_NFL      16
