@@ -2209,6 +2209,7 @@ void sort_stage1_fast_candidates(
         }
     }
 }
+void sort_stage1_candidates(
 #else
 void sort_stage1_fast_candidates(
     struct ModeDecisionContext   *context_ptr,
@@ -2221,8 +2222,9 @@ void sort_stage1_fast_candidates(
     sort_array_index_fast_cost_ptr(buffer_ptr_array,
         cand_buff_indices, num_of_cand_to_sort);
 }
-#endif
+
 void sort_stage2_candidates(
+#endif
     struct ModeDecisionContext   *context_ptr,
     uint32_t                      num_of_cand_to_sort,
     uint32_t                     *cand_buff_indices)
@@ -5767,8 +5769,12 @@ void full_loop_core(
         candidate_ptr->skip_flag = EB_FALSE;
 
         if (candidate_ptr->type != INTRA_MODE) {
+#if REMOVE_MD_STAGE_1
+            if (context_ptr->md_staging_skip_full_pred == EB_FALSE) {
+#else
             if (picture_control_set_ptr->parent_pcs_ptr->interpolation_search_level > IT_SEARCH_OFF)
                 if (picture_control_set_ptr->parent_pcs_ptr->interpolation_search_level == IT_SEARCH_FULL_LOOP || context_ptr->md_staging_skip_full_pred == EB_FALSE) {
+#endif
 #if REMOVE_MD_STAGE_1
 #if !IF_TEST
                     candidate_buffer->candidate_ptr->interp_filters = 0;
@@ -7655,7 +7661,7 @@ void md_encode_block(
                 //sort the new set of candidates
 #if REMOVE_MD_STAGE_1
                 if (context_ptr->md_stage_1_count[cand_class_it])
-                    sort_stage2_candidates(
+                    sort_stage1_candidates(
                         context_ptr,
                         context_ptr->md_stage_1_count[cand_class_it],
                         context_ptr->cand_buff_indices[cand_class_it]);
