@@ -13620,7 +13620,7 @@ extern "C" {
         uint8_t           leaf_index;
         EbBool            split_flag;
 #if PREDICT_NSQ_SHAPE
-        uint8_t           open_loop_ranking;
+        //uint8_t           open_loop_ranking;
         uint8_t           early_split_flag;
 #if COMBINE_MDC_NSQ_TABLE
         uint8_t           ol_best_nsq_shape1;
@@ -14244,9 +14244,6 @@ extern "C" {
         uint8_t                               tx_search_reduced_set;
         uint8_t                               interpolation_search_level;
         uint8_t                               nsq_search_level;
-#if NSQ_SUB_LEVEL
-        uint8_t                               nsq_search_sub_level;
-#endif
         uint8_t                               nsq_max_shapes_md; // max number of shapes to be tested in MD
         uint8_t                              sc_content_detected;
         uint8_t                              ibc_mode;

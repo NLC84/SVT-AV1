@@ -158,14 +158,11 @@ enum {
 /* Use open-loop data to predict the NSQ partitions. */
 #define PREDICT_NSQ_SHAPE                               1
 #if PREDICT_NSQ_SHAPE
-#define DEPTH_RANKING                                   1
 #define NUMBER_OF_DEPTH                                 6
 #define NUMBER_OF_SHAPES                                10
 #define ADD_SAD_FOR_128X128                             1
 #define ADJUST_NSQ_RANK_BASED_ON_NEIGH                  1
 #define COMBINE_MDC_NSQ_TABLE                           1
-#define NSQ_SUB_LEVEL                                   1
-#define FIX_CRASH                                       1
 #define ADD_SUPPORT_TO_SKIP_PART_N                      1
 #define ADD_MDC_REFINEMENT_LOOP                         1
 #define ADD_MDC_FULL_COST                               1
@@ -619,15 +616,6 @@ typedef enum NsqSearchLevel
 #endif
     NSQ_SEARCH_FULL
 } NsqSearchLevel;
-
-#if NSQ_SUB_LEVEL
-typedef enum NsqSearchSubLevel
-{
-    NO_SUB_LEVEL,
-    NSQ_SEARCH_SUB_LEVEL1,
-    NSQ_SEARCH_SUB_LEVEL2
-} NsqSearchSubLevel;
-#endif
 
 #define MAX_PARENT_SQ     6
 typedef enum CompoundDistWeightMode {

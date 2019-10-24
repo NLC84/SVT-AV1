@@ -6173,10 +6173,6 @@ void check_redundant_block(const BlockGeom * blk_geom, ModeDecisionContext *cont
 *   performs CL (LCU)
 *******************************************/
 EbBool allowed_ns_cu(
-#if NSQ_SUB_LEVEL
-    uint8_t                            temporal_layer,
-    uint8_t                            nsq_search_sub_level,
-#endif
 #if COMBINE_MDC_NSQ_TABLE
     uint8_t                            mdc_depth_level,
 #endif
@@ -6201,59 +6197,12 @@ EbBool allowed_ns_cu(
         else {
             if (context_ptr->blk_geom->shape != PART_N) {
                 ret = 0;
-#if NSQ_SUB_LEVEL
-                if (nsq_search_sub_level == NSQ_SEARCH_SUB_LEVEL1) {
-                    if (temporal_layer > 3) {
-                        if (context_ptr->blk_geom->bheight > 16 && context_ptr->blk_geom->bwidth > 16) {
-                            for (int i = 0; i < nsq_max_shapes_md; i++) {
-                                if (context_ptr->blk_geom->shape == context_ptr->nsq_table[i])
-                                    ret = 1;
-                            }
-                        }
-                    }
-                    else if (temporal_layer > 0) {
-                        if (context_ptr->blk_geom->bheight > 8 && context_ptr->blk_geom->bwidth > 8) {
-                            for (int i = 0; i < nsq_max_shapes_md; i++) {
-                                if (context_ptr->blk_geom->shape == context_ptr->nsq_table[i])
-                                    ret = 1;
-                            }
-                        }
-                    }
-                    else {
-                        for (int i = 0; i < nsq_max_shapes_md + 1; i++) {
-                            if (context_ptr->blk_geom->shape == context_ptr->nsq_table[i])
-                                ret = 1;
-                        }
-                    }
-                }
-                else if (nsq_search_sub_level == NSQ_SEARCH_SUB_LEVEL2) {
-                    if (temporal_layer > 3) {
-                        if (context_ptr->blk_geom->bheight > 16 && context_ptr->blk_geom->bwidth > 16) {
-                            for (int i = 0; i < nsq_max_shapes_md; i++) {
-                                if (context_ptr->blk_geom->shape == context_ptr->nsq_table[i])
-                                    ret = 1;
-                            }
-                        }
-                    }
-                    else {
-                        for (int i = 0; i < nsq_max_shapes_md + 1; i++) {
-                            if (context_ptr->blk_geom->shape == context_ptr->nsq_table[i])
-                                ret = 1;
-                        }
-                    }
-
-                }
-                else {
-#endif
-                    for (int i = 0; i < nsq_max_shapes_md; i++) {
-                        if (context_ptr->blk_geom->shape == context_ptr->nsq_table[i])
-                            ret = 1;
-                    }
+                for (int i = 0; i < nsq_max_shapes_md; i++) {
+                    if (context_ptr->blk_geom->shape == context_ptr->nsq_table[i])
+                        ret = 1;
                 }
             }
-#if NSQ_SUB_LEVEL
         }
-#endif
     }
 #else
     if (is_nsq_table_used) {
@@ -6649,7 +6598,6 @@ PART get_partition_shape(
 * Adjust the nsq_rank in order to keep the most
 * probable Shape to be selected in the lowest index
 ****************************************************/
-#if COMBINE_MDC_NSQ_TABLE
 void  adjust_nsq_rank(
     PictureControlSet            *picture_control_set_ptr,
     ModeDecisionContext          *context_ptr,
@@ -6657,17 +6605,6 @@ void  adjust_nsq_rank(
     LargestCodingUnit            *sb_ptr,
     NeighborArrayUnit            *leaf_partition_neighbor_array) {
     const uint32_t                lcuAddr = sb_ptr->index;
-
-#if DISABLE_RED_CU
-    uint8_t ol_part1 = 0;
-    uint8_t ol_part2 = 0;
-    uint8_t ol_part3 = 0;
-    uint8_t ol_part4 = 0;
-    uint8_t ol_part5 = 0;
-    uint8_t ol_part6 = 0;
-    uint8_t ol_part7 = 0;
-    uint8_t ol_part8 = 0;
-#else
     uint8_t ol_part1 = context_ptr->best_nsq_sahpe1;
     uint8_t ol_part2 = context_ptr->best_nsq_sahpe2;
     uint8_t ol_part3 = context_ptr->best_nsq_sahpe3;
@@ -6676,8 +6613,6 @@ void  adjust_nsq_rank(
     uint8_t ol_part6 = context_ptr->best_nsq_sahpe6;
     uint8_t ol_part7 = context_ptr->best_nsq_sahpe7;
     uint8_t ol_part8 = context_ptr->best_nsq_sahpe8;
-#endif
-
     EbBool isCompoundEnabled = (picture_control_set_ptr->parent_pcs_ptr->reference_mode == SINGLE_REFERENCE) ? 0 : 1;
     uint32_t me_sb_addr;
     uint32_t me2Nx2NTableOffset;
@@ -6892,40 +6827,6 @@ void  adjust_nsq_rank(
         }
     }
 }
-
-#else
-void  adjust_nsq_rank(
-    PictureControlSet            *picture_control_set_ptr,
-    ModeDecisionContext          *context_ptr,
-    const SequenceControlSet     *sequence_control_set_ptr,
-    LargestCodingUnit            *sb_ptr,
-    NeighborArrayUnit            *leaf_partition_neighbor_array) {
-    const uint32_t             lcuAddr = sb_ptr->index;
-
-    // Generate Partition context
-    uint32_t partition_left_neighbor_index = get_neighbor_array_unit_left_index(
-        leaf_partition_neighbor_array,
-        context_ptr->cu_origin_y);
-    uint32_t partition_above_neighbor_index = get_neighbor_array_unit_top_index(
-        leaf_partition_neighbor_array,
-        context_ptr->cu_origin_x);
-    const PartitionContextType above_ctx = (((PartitionContext*)leaf_partition_neighbor_array->top_array)[partition_above_neighbor_index].above == (int8_t)INVALID_NEIGHBOR_DATA) ?
-        0 : ((PartitionContext*)leaf_partition_neighbor_array->top_array)[partition_above_neighbor_index].above;
-    const PartitionContextType left_ctx = (((PartitionContext*)leaf_partition_neighbor_array->left_array)[partition_left_neighbor_index].left == (int8_t)INVALID_NEIGHBOR_DATA) ?
-        0 : ((PartitionContext*)leaf_partition_neighbor_array->left_array)[partition_left_neighbor_index].left;
-
-    PART neighbor_part = get_partition_shape(
-        above_ctx,
-        left_ctx,
-        context_ptr->blk_geom->bwidth,
-        context_ptr->blk_geom->bheight);
-
-    // Insert predicted Shapes based on neighbor information
-    if (neighbor_part == context_ptr->blk_geom->shape) {
-        context_ptr->open_loop_block_rank = 0;
-    }
-}
-#endif
 #endif
 
 /****************************************************
@@ -7393,10 +7294,6 @@ void md_encode_block(
     SsMeContext                    *ss_mecontext,
     uint8_t                        *skip_sub_blocks,
     uint32_t                        lcuAddr,
-#if PREDICT_NSQ_SHAPE
-    uint8_t                          open_loop_block_rank,
-    uint8_t                          early_split_flag,
-#endif
     ModeDecisionCandidateBuffer    *bestcandidate_buffers[5])
 {
     ModeDecisionCandidateBuffer  **candidate_buffer_ptr_array_base = context_ptr->candidate_buffer_ptr_array;
@@ -7425,10 +7322,6 @@ void md_encode_block(
         picture_control_set_ptr->parent_pcs_ptr->nsq_search_level < NSQ_SEARCH_FULL) ? EB_TRUE : EB_FALSE;
 		
     is_nsq_table_used = picture_control_set_ptr->parent_pcs_ptr->sc_content_detected || picture_control_set_ptr->enc_mode == ENC_M0 ? EB_FALSE : is_nsq_table_used;
-
-    context_ptr->open_loop_block_rank = open_loop_block_rank;
-    context_ptr->early_split_flag = early_split_flag;
-    context_ptr->nsq_mode_idx = picture_control_set_ptr->parent_pcs_ptr->sb_depth_mode_array[lcuAddr] - 1;
 #if ADJUST_NSQ_RANK_BASED_ON_NEIGH
     if (is_nsq_table_used) {
         if (context_ptr->blk_geom->shape == PART_N) {
@@ -7473,10 +7366,6 @@ void md_encode_block(
     uint8_t                            is_complete_sb = sequence_control_set_ptr->sb_geom[lcuAddr].is_complete_sb;
 
     if (allowed_ns_cu(
-#if NSQ_SUB_LEVEL
-        picture_control_set_ptr->temporal_layer_index,
-        picture_control_set_ptr->parent_pcs_ptr->nsq_search_sub_level,
-#endif
 #if COMBINE_MDC_NSQ_TABLE
         picture_control_set_ptr->parent_pcs_ptr->mdc_depth_level,
 #endif
@@ -8005,10 +7894,6 @@ EB_EXTERN EbErrorType mode_decision_sb(
     context_ptr->inter_pred_dir_neighbor_array = picture_control_set_ptr->md_inter_pred_dir_neighbor_array[MD_NEIGHBOR_ARRAY_INDEX];
     context_ptr->ref_frame_type_neighbor_array = picture_control_set_ptr->md_ref_frame_type_neighbor_array[MD_NEIGHBOR_ARRAY_INDEX];
     context_ptr->interpolation_type_neighbor_array = picture_control_set_ptr->md_interpolation_type_neighbor_array[MD_NEIGHBOR_ARRAY_INDEX];
-#if DEPTH_RANKING
-    for (uint8_t depth_idx = 0;depth_idx < NUMBER_OF_DEPTH; depth_idx++)
-        context_ptr->open_loop_depth_rank[depth_idx] = sb_ptr->depth_ranking[depth_idx];
-#endif
 #if ADD_SUPPORT_TO_SKIP_PART_N
     uint32_t  d1_block_itr = 0;
     uint32_t  d1_first_block = 1;
@@ -8106,10 +7991,6 @@ EB_EXTERN EbErrorType mode_decision_sb(
         cu_ptr->split_flag = (uint16_t)leafDataPtr->split_flag; //mdc indicates smallest or non valid CUs with split flag=
         cu_ptr->qp = context_ptr->qp;
         cu_ptr->best_d1_blk = blk_idx_mds;
-
-#if PREDICT_NSQ_SHAPE
-        uint8_t open_loop_block_rank = leafDataPtr->open_loop_ranking;
-        uint8_t early_split_flag = leafDataPtr->early_split_flag;
 #if COMBINE_MDC_NSQ_TABLE
         context_ptr->best_nsq_sahpe1 = leafDataPtr->ol_best_nsq_shape1;
         context_ptr->best_nsq_sahpe2 = leafDataPtr->ol_best_nsq_shape2;
@@ -8120,8 +8001,6 @@ EB_EXTERN EbErrorType mode_decision_sb(
         context_ptr->best_nsq_sahpe7 = leafDataPtr->ol_best_nsq_shape7;
         context_ptr->best_nsq_sahpe8 = leafDataPtr->ol_best_nsq_shape8;
 #endif
-#endif
-
             if (leafDataPtr->tot_d1_blocks != 1)
             {
 #if ADD_SUPPORT_TO_SKIP_PART_N
@@ -8272,10 +8151,6 @@ EB_EXTERN EbErrorType mode_decision_sb(
                     ss_mecontext,
                     &skip_sub_blocks,
                     lcuAddr,
-#if PREDICT_NSQ_SHAPE
-                    open_loop_block_rank,
-                    early_split_flag,
-#endif
                     bestcandidate_buffers);
 
             }
