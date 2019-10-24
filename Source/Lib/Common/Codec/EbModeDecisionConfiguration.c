@@ -54,7 +54,20 @@ int pa_to_ep_block_index[85] = {
     1040 ,
     1065 ,    1074 ,    1083 ,    1092
 };
-
+#if ADD_MDC_FULL_COST
+static PartitionType from_shape_to_part[] = {
+    PARTITION_NONE,
+    PARTITION_HORZ,
+    PARTITION_VERT,
+    PARTITION_HORZ_A,
+    PARTITION_HORZ_B,
+    PARTITION_VERT_A,
+    PARTITION_VERT_B,
+    PARTITION_HORZ_4,
+    PARTITION_VERT_4,
+    PARTITION_SPLIT
+};
+#endif
 #define ADD_CU_STOP_SPLIT             0   // Take into account & Stop Splitting
 #define ADD_CU_CONTINUE_SPLIT         1   // Take into account & Continue Splitting
 #define DO_NOT_ADD_CU_CONTINUE_SPLIT  2   // Do not take into account & Continue Splitting

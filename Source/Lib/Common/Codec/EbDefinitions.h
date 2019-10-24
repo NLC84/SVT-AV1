@@ -679,20 +679,7 @@ typedef enum ATTRIBUTE_PACKED {
     PARTITION_TYPES = PARTITION_SPLIT + 1,
     PARTITION_INVALID = 255
 } PartitionType;
-#if ADD_MDC_FULL_COST
-static PartitionType from_shape_to_part[] = {
-    PARTITION_NONE,
-    PARTITION_HORZ,
-    PARTITION_VERT,
-    PARTITION_HORZ_A,
-    PARTITION_HORZ_B,
-    PARTITION_VERT_A,
-    PARTITION_VERT_B,
-    PARTITION_HORZ_4,
-    PARTITION_VERT_4,
-    PARTITION_SPLIT
-};
-#endif
+
 #define MAX_NUM_BLOCKS_ALLOC  7493  //max number of blocks assuming 128x128-4x4 all partitions.
 
 typedef enum ATTRIBUTE_PACKED {
